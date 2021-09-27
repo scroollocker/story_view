@@ -15,14 +15,16 @@ class Stories extends StatefulWidget {
   final List<Story> stories;
   final Color backgroundColor;
   final Color indicatorColor;
+  final double? cellSize;
 
-  const Stories({
-    Key? key,
-    required this.cells,
-    required this.stories,
-    required this.backgroundColor,
-    required this.indicatorColor,
-  }) : super(key: key);
+  const Stories(
+      {Key? key,
+      required this.cells,
+      required this.stories,
+      required this.backgroundColor,
+      required this.indicatorColor,
+      this.cellSize})
+      : super(key: key);
 
   @override
   _StoriesState createState() => _StoriesState();
@@ -77,7 +79,7 @@ class _StoriesState extends State<Stories> {
     }
 
     return Container(
-      height: 70,
+      height: widget.cellSize ?? 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: widget.cells.length,
@@ -137,17 +139,39 @@ class _StoryPageState extends State<StoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: StoryView(
-        storyItems: toStoryItems(widget.stories),
-        onComplete: () {
-          widget.onPageComplete();
-        },
-        inline: false,
-        progressPosition: ProgressPosition.top,
-        repeat: false,
-        controller: storyController,
-      ),
+    return Stack(
+      children: [
+        StoryView(
+          storyItems: toStoryItems(widget.stories),
+          onComplete: () {
+            widget.onPageComplete();
+          },
+          inline: false,
+          progressPosition: ProgressPosition.top,
+          repeat: false,
+          controller: storyController,
+        ),
+        Positioned(
+            right: 20,
+            top: 75,
+            child: Container(
+              width: 35,
+              height: 35,
+              child: Material(
+                color: Colors.transparent,
+                child: Center(
+                  child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Icon(
+                        Icons.close,
+                        color: Color(0xffB6BCC3),
+                      )),
+                ),
+              ),
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.white24),
+            ))
+      ],
     );
   }
 
