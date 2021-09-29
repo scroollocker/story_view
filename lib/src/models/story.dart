@@ -21,7 +21,7 @@ class Story {
     this.path,
     this.cell, {
     this.meadiaType = MediaType.image,
-    this.sourceType = SourceType.asset,
+    this.sourceType = SourceType.url,
     this.duration = const Duration(seconds: 5),
   });
 }

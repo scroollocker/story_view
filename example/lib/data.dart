@@ -9,4 +9,8 @@ final List<Story> stories = [
   Story('assets/gif/wow-cat.gif', cell2),
   Story('assets/images/3.jpg', cell1),
   Story('assets/gif/wow-cat.gif', cell1),
+  Story(
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      cell,
+      meadiaType: MediaType.video),
 ];

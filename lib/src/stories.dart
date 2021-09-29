@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
+import 'package:stories/src/controller.dart';
 import 'package:stories/src/models/story.dart';
 import 'package:stories/src/models/story_cell.dart';
 import 'package:vector_math/vector_math.dart' as rad;
@@ -32,31 +34,52 @@ class Stories extends StatefulWidget {
 
 class _StoriesState extends State<Stories> {
   List<StoryPage> storyPages = [];
-  late PageController pageController;
+  late StoriesController storiesController;
+
+  double opacity = 0;
 
   void onPageComplete() {
-    if (pageController.page == widget.cells.length - 1) {
+    if (storiesController.pageController.page == widget.cells.length - 1) {
       if (!mounted) return;
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
     }
 
-    pageController.nextPage(
+    storiesController.pageController.nextPage(
         duration: const Duration(milliseconds: 300), curve: Curves.linear);
   }
 
   @override
   void initState() {
     super.initState();
-    widget.cells.forEach((elem) {
-      storyPages.add(StoryPage(
-        stories: _getStories(elem),
-        onPageComplete: onPageComplete,
-        backgroundColor: widget.backgroundColor,
-        indicatorColor: widget.indicatorColor,
-      ));
-    });
+
+    storiesController = StoriesController(
+      pageController: PageController(initialPage: 0),
+      storyControllers: List.generate(
+        widget.cells.length,
+        (_) => StoryController(),
+      ),
+    );
+
+    for (int i = 0; i < widget.cells.length; i++) {
+      storyPages.add(
+        StoryPage(
+          stories: _getStories(widget.cells[i]),
+          onPageComplete: onPageComplete,
+          backgroundColor: widget.backgroundColor,
+          indicatorColor: widget.indicatorColor,
+          storyController: storiesController.storyControllers[i],
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    storiesController.pageController.dispose();
+    storiesController.dispose();
+    super.dispose();
   }
 
   List<Story> _getStories(dynamic elem) {
@@ -66,19 +89,25 @@ class _StoriesState extends State<Stories> {
   @override
   Widget build(BuildContext context) {
     _onStorySwipeClicked(int initialPage) {
-      pageController = PageController(initialPage: initialPage);
+      storiesController.pageController =
+          PageController(initialPage: initialPage);
+
+      storiesController.pageController.addListener(() {
+        storiesController.checkRoll();
+      });
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => StorySwipe(
             children: storyPages,
-            pageController: pageController,
+            pageController: storiesController.pageController,
           ),
         ),
       );
     }
 
-    return Container(
+    return SizedBox(
       height: widget.cellSize ?? 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -92,11 +121,9 @@ class _StoriesState extends State<Stories> {
                 padding: const EdgeInsets.all(5.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    child: Image.asset(
-                      widget.cells[index].imagePath,
-                      fit: BoxFit.cover,
-                    ),
+                  child: Image.asset(
+                    widget.cells[index].imagePath,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ));
@@ -115,6 +142,7 @@ class StoryPage extends StatefulWidget {
   final Color backgroundColor;
   final Color indicatorColor;
   final void Function() onPageComplete;
+  final StoryController storyController;
 
   StoryPage({
     Key? key,
@@ -122,6 +150,7 @@ class StoryPage extends StatefulWidget {
     required this.onPageComplete,
     required this.backgroundColor,
     required this.indicatorColor,
+    required this.storyController,
   }) : super(key: key);
 
   @override
@@ -129,27 +158,19 @@ class StoryPage extends StatefulWidget {
 }
 
 class _StoryPageState extends State<StoryPage> {
-  final storyController = StoryController();
-
-  @override
-  void dispose() {
-    storyController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         StoryView(
-          storyItems: toStoryItems(widget.stories),
+          storyItems: toStoryItems(widget.stories, widget.storyController),
           onComplete: () {
             widget.onPageComplete();
           },
           inline: false,
           progressPosition: ProgressPosition.top,
           repeat: false,
-          controller: storyController,
+          controller: widget.storyController,
         ),
         Positioned(
             right: 20,
@@ -162,10 +183,7 @@ class _StoryPageState extends State<StoryPage> {
                 child: Center(
                   child: InkWell(
                       onTap: () => Navigator.pop(context),
-                      child: Icon(
-                        Icons.close,
-                        color: Color(0xffB6BCC3),
-                      )),
+                      child: const Icon(Icons.close, color: Color(0xffB6BCC3))),
                 ),
               ),
               decoration: const BoxDecoration(
@@ -175,7 +193,8 @@ class _StoryPageState extends State<StoryPage> {
     );
   }
 
-  List<StoryItem> toStoryItems(List<Story> stories) {
+  List<StoryItem> toStoryItems(
+      List<Story> stories, StoryController storyController) {
     List<StoryItem> storyItems = [];
     for (int i = 0; i < stories.length; i++) {
       switch (stories[i].meadiaType) {
@@ -203,28 +222,13 @@ class _StoryPageState extends State<StoryPage> {
           }
         case MediaType.video:
           {
-            switch (stories[i].sourceType) {
-              case SourceType.asset:
-                {
-                  storyItems.add(StoryItem(
-                      VideoWidget(stories[i].path, widget.backgroundColor,
-                          widget.indicatorColor,
-                          key: Key('video-$i')),
-                      duration: stories[i].duration));
-                  break;
-                }
-              case SourceType.url:
-                {
-                  storyItems.add(StoryItem(
-                      VideoWidget(stories[i].path, widget.backgroundColor,
-                          widget.indicatorColor,
-                          key: Key('video-$i'), isNetworkVideo: true),
-                      duration: stories[i].duration));
-                  break;
-                }
-              default:
-                break;
-            }
+            storyItems.add(VideoWidget(
+                    key: Key('video-$i'),
+                    url: stories[i].path,
+                    storyController: storyController,
+                    backgroundColor: widget.backgroundColor,
+                    indicatorColor: widget.indicatorColor)
+                .storyItemVideo);
             break;
           }
         default:
@@ -236,159 +240,11 @@ class _StoryPageState extends State<StoryPage> {
 }
 
 ////////////////////////////////////
-//         ImageWidget
-////////////////////////////////////
-
-class ImageWidget extends StatelessWidget {
-  final String path;
-  final bool isNetworkImage;
-  const ImageWidget(this.path, {Key? key, this.isNetworkImage = false})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: double.infinity,
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.zero,
-            child: Stack(
-              children: [
-                Positioned.fill(child: Image.asset(path, fit: BoxFit.cover)),
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                  child: Container(
-                    color: Colors.black.withOpacity(0.3),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Image.asset(path),
-        ],
-      ),
-    );
-  }
-}
-
-////////////////////////////////////
-//         VideoWidget
-////////////////////////////////////
-
-class VideoWidget extends StatefulWidget {
-  final String path;
-  final bool isNetworkVideo;
-  final Color backgroundColor;
-  final Color indicatorColor;
-  VideoWidget(
-    this.path,
-    this.backgroundColor,
-    this.indicatorColor, {
-    Key? key,
-    this.isNetworkVideo = false,
-  }) : super(key: key);
-
-  @override
-  _VideoWidgetState createState() => _VideoWidgetState();
-}
-
-class _VideoWidgetState extends State<VideoWidget> {
-  late VideoPlayerController _controller;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    isLoading = true;
-    _controller = VideoPlayerController.asset(widget.path);
-
-    _controller.addListener(() {
-      if (!mounted) return;
-      setState(() {});
-    });
-
-    //_controller.setLooping(true);
-    _controller.initialize().then((_) => setState(() {
-          isLoading = false;
-        }));
-    _controller.play();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return !isLoading
-        ? Container(
-            child: GestureDetector(
-              onTapDown: (value) {
-                _controller.pause();
-              },
-              onTapCancel: () {
-                _controller.play();
-              },
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.zero,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: VideoPlayer(_controller)),
-                        BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                          child: Container(
-                            height: double.infinity,
-                            width: double.infinity,
-                            color: Colors.black.withOpacity(0.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    height: double.infinity,
-                    width: double.infinity,
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: _controller.value.aspectRatio,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            VideoPlayer(_controller),
-                            //_ControlsOverlay(controller: _controller),
-                            // VideoProgressIndicator(_controller, allowScrubbing: true),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        : Container(
-            color: widget.backgroundColor,
-            child: Center(
-                child: CircularProgressIndicator(
-              color: widget.indicatorColor,
-            )));
-  }
-}
-
-////////////////////////////////////
 //            Swipe
 ////////////////////////////////////
 
 class StorySwipe extends StatefulWidget {
-  final List<Widget> children;
+  final List<StoryPage> children;
   final PageController pageController;
 
   StorySwipe({
@@ -449,9 +305,7 @@ num degToRad(num deg) => deg * (pi / 180.0);
 
 class _SwipeWidget extends StatelessWidget {
   final int index;
-
   final double pageNotifier;
-
   final Widget child;
 
   const _SwipeWidget({
@@ -485,5 +339,223 @@ class _SwipeWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+////////////////////////////////////
+//         ImageWidget
+////////////////////////////////////
+
+class ImageWidget extends StatelessWidget {
+  final String path;
+  final bool isNetworkImage;
+  const ImageWidget(this.path, {Key? key, this.isNetworkImage = false})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: double.infinity,
+      width: double.infinity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.zero,
+            child: Stack(
+              children: [
+                Positioned.fill(child: Image.asset(path, fit: BoxFit.cover)),
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  child: Container(
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Image.asset(path),
+        ],
+      ),
+    );
+  }
+}
+
+////////////////////////////////////
+//         VideoWidget
+////////////////////////////////////
+
+class VideoWidget {
+  Key? key;
+  final String url;
+  final Color backgroundColor;
+  final Color indicatorColor;
+  final StoryController storyController;
+  Map<String, dynamic>? requestHeaders;
+  Duration? duration;
+  bool? shown;
+
+  VideoWidget({
+    required this.url,
+    required this.storyController,
+    required this.backgroundColor,
+    required this.indicatorColor,
+    this.key,
+    this.requestHeaders,
+    this.duration,
+    this.shown = false,
+  });
+
+  StoryItem get storyItemVideo {
+    return StoryItem(
+        Container(
+          key: key,
+          child: Stack(
+            children: <Widget>[
+              VideoLoad(
+                storyController: storyController,
+                videoLoader: VideoLoader(url, requestHeaders: requestHeaders),
+                backgroundColor: backgroundColor,
+                indicatorColor: indicatorColor,
+              ),
+            ],
+          ),
+        ),
+        shown: shown!,
+        duration: duration ?? const Duration(seconds: 10));
+  }
+}
+
+class VideoLoad extends StatefulWidget {
+  final StoryController storyController;
+  final VideoLoader videoLoader;
+  final Color backgroundColor;
+  final Color indicatorColor;
+  const VideoLoad({
+    required this.storyController,
+    required this.videoLoader,
+    required this.backgroundColor,
+    required this.indicatorColor,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  _VideoLoadState createState() => _VideoLoadState();
+}
+
+class _VideoLoadState extends State<VideoLoad> {
+  Future<void>? playerLoader;
+
+  StreamSubscription? _streamSubscription;
+
+  VideoPlayerController? playerController;
+  @override
+  void initState() {
+    super.initState();
+
+    widget.storyController.pause();
+
+    widget.videoLoader.loadVideo(() {
+      if (widget.videoLoader.state == LoadState.success) {
+        playerController =
+            VideoPlayerController.file(widget.videoLoader.videoFile!);
+
+        playerController!.initialize().then((v) {
+          setState(() {});
+          widget.storyController.play();
+        });
+
+        _streamSubscription =
+            widget.storyController.playbackNotifier.listen((playbackState) {
+          if (playbackState == PlaybackState.pause) {
+            playerController!.pause();
+          } else {
+            playerController!.play();
+          }
+        });
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
+    if (widget.videoLoader.state == LoadState.success &&
+        playerController!.value.isInitialized) {
+      double widthAspect = (playerController!.value.size.width - width) / width;
+      double heightAspect =
+          (playerController!.value.size.height - height) / height;
+
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  left: -widthAspect * width / 2,
+                  right: -widthAspect * width / 2,
+                  top: -heightAspect * height / 2,
+                  bottom: -heightAspect * height / 2,
+                  child: AspectRatio(
+                    aspectRatio: playerController!.value.aspectRatio,
+                    child: VideoPlayer(playerController!),
+                  ),
+                ),
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                  child: Container(
+                    height: double.infinity,
+                    width: double.infinity,
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Center(
+            child: AspectRatio(
+              aspectRatio: playerController!.value.aspectRatio,
+              child: VideoPlayer(playerController!),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return widget.videoLoader.state == LoadState.loading
+        ? Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: widget.backgroundColor,
+            child: Center(
+              child: SizedBox(
+                width: 70,
+                height: 70,
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(widget.indicatorColor),
+                  strokeWidth: 3,
+                ),
+              ),
+            ),
+          )
+        : const Center(
+            child: Text(
+            "Media failed to load.",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ));
+  }
+
+  @override
+  void dispose() {
+    playerController?.dispose();
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 }

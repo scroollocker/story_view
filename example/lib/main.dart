@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
             child: Stories(
               stories: stories,
               cells: [cell, cell1, cell2],
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.black,
               indicatorColor: Colors.blue,
             ),
           ),
