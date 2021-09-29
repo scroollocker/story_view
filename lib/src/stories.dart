@@ -280,23 +280,25 @@ class _StorySwipeState extends State<StorySwipe> {
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: widget.pageController,
-      itemCount: widget.children.length,
-      itemBuilder: (context, index) {
-        double value;
+    return Material(
+      child: PageView.builder(
+        controller: widget.pageController,
+        itemCount: widget.children.length,
+        itemBuilder: (context, index) {
+          double value;
 
-        if (widget.pageController.position.haveDimensions == false) {
-          value = index.toDouble();
-        } else {
-          value = widget.pageController.page!;
-        }
-        return _SwipeWidget(
-          index: index,
-          pageNotifier: value,
-          child: widget.children[index],
-        );
-      },
+          if (widget.pageController.position.haveDimensions == false) {
+            value = index.toDouble();
+          } else {
+            value = widget.pageController.page!;
+          }
+          return _SwipeWidget(
+            index: index,
+            pageNotifier: value,
+            child: widget.children[index],
+          );
+        },
+      ),
     );
   }
 }
@@ -454,7 +456,7 @@ class _VideoLoadState extends State<VideoLoad> {
     super.initState();
 
     widget.storyController.pause();
-
+    print(widget.videoLoader.state);
     widget.videoLoader.loadVideo(() {
       if (widget.videoLoader.state == LoadState.success) {
         playerController =
