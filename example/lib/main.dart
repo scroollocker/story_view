@@ -13,6 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
             child: Stories(
               stories: stories,
               cells: [cell, cell1, cell2],
-              backgroundColor: Colors.black,
+              backgroundColor: Colors.white,
               indicatorColor: Colors.blue,
             ),
           ),

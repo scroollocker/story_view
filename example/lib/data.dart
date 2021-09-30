@@ -12,5 +12,16 @@ final List<Story> stories = [
   Story(
       'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
       cell,
-      meadiaType: MediaType.video),
+      meadiaType: MediaType.video,
+      duration: Duration(seconds: 15)),
+  Story(
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      cell1,
+      meadiaType: MediaType.video,
+      duration: Duration(seconds: 15)),
+  Story(
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+      cell2,
+      meadiaType: MediaType.video,
+      duration: Duration(seconds: 15)),
 ];

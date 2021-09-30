@@ -36,8 +36,6 @@ class _StoriesState extends State<Stories> {
   List<StoryPage> storyPages = [];
   late StoriesController storiesController;
 
-  double opacity = 0;
-
   void onPageComplete() {
     if (storiesController.pageController.page == widget.cells.length - 1) {
       if (!mounted) return;
@@ -45,9 +43,14 @@ class _StoriesState extends State<Stories> {
         Navigator.of(context).pop();
       }
     }
-
+    print(
+        '\n\n\n\n          ${storiesController.pageController.page}           \n\n\n');
     storiesController.pageController.nextPage(
         duration: const Duration(milliseconds: 300), curve: Curves.linear);
+  }
+
+  void onCurrentPage(detail) {
+    // print('${detail}              ${storiesController.pageController.page}');
   }
 
   @override
@@ -67,6 +70,7 @@ class _StoriesState extends State<Stories> {
         StoryPage(
           stories: _getStories(widget.cells[i]),
           onPageComplete: onPageComplete,
+          onCurrentPage: onCurrentPage,
           backgroundColor: widget.backgroundColor,
           indicatorColor: widget.indicatorColor,
           storyController: storiesController.storyControllers[i],
@@ -99,9 +103,11 @@ class _StoriesState extends State<Stories> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => StorySwipe(
-            children: storyPages,
-            pageController: storiesController.pageController,
+          builder: (context) => GestureDetector(
+            child: StorySwipe(
+              children: storyPages,
+              pageController: storiesController.pageController,
+            ),
           ),
         ),
       );
@@ -142,12 +148,14 @@ class StoryPage extends StatefulWidget {
   final Color backgroundColor;
   final Color indicatorColor;
   final void Function() onPageComplete;
+  final void Function(dynamic widget) onCurrentPage;
   final StoryController storyController;
 
   StoryPage({
     Key? key,
     required this.stories,
     required this.onPageComplete,
+    required this.onCurrentPage,
     required this.backgroundColor,
     required this.indicatorColor,
     required this.storyController,
@@ -166,6 +174,9 @@ class _StoryPageState extends State<StoryPage> {
           storyItems: toStoryItems(widget.stories, widget.storyController),
           onComplete: () {
             widget.onPageComplete();
+          },
+          onStoryShow: (detail) {
+            widget.onCurrentPage(detail);
           },
           inline: false,
           progressPosition: ProgressPosition.top,
@@ -272,32 +283,29 @@ class _StorySwipeState extends State<StorySwipe> {
     });
   }
 
-  void next() {
-    setState(() {
-      currentPageValue = widget.pageController.page!;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Material(
-      child: PageView.builder(
-        controller: widget.pageController,
-        itemCount: widget.children.length,
-        itemBuilder: (context, index) {
-          double value;
+      child: IgnorePointer(
+        ignoring: currentPageValue % 1 != 0 ? true : false,
+        child: PageView.builder(
+          controller: widget.pageController,
+          itemCount: widget.children.length,
+          itemBuilder: (context, index) {
+            double value;
 
-          if (widget.pageController.position.haveDimensions == false) {
-            value = index.toDouble();
-          } else {
-            value = widget.pageController.page!;
-          }
-          return _SwipeWidget(
-            index: index,
-            pageNotifier: value,
-            child: widget.children[index],
-          );
-        },
+            if (widget.pageController.position.haveDimensions == false) {
+              value = index.toDouble();
+            } else {
+              value = widget.pageController.page!;
+            }
+            return _SwipeWidget(
+              index: index,
+              pageNotifier: value,
+              child: widget.children[index],
+            );
+          },
+        ),
       ),
     );
   }
@@ -456,13 +464,13 @@ class _VideoLoadState extends State<VideoLoad> {
     super.initState();
 
     widget.storyController.pause();
-    print(widget.videoLoader.state);
     widget.videoLoader.loadVideo(() {
       if (widget.videoLoader.state == LoadState.success) {
         playerController =
             VideoPlayerController.file(widget.videoLoader.videoFile!);
 
         playerController!.initialize().then((v) {
+          print(playerController!.value.duration);
           setState(() {});
           widget.storyController.play();
         });
