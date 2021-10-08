@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:story_view/controller/story_controller.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:stories/src/models/story.dart';
+
+enum LoadState { loading, success, failure }
+
+enum PlaybackState { pause, play, next, previous, onComplete, loading }
 
 class StoriesController extends ScrollController {
   PageController pageController;
@@ -15,21 +20,25 @@ class StoriesController extends ScrollController {
     return storyController.playbackNotifier.last;
   }
 
-  void checkRoll() {
-    double page = currentPage!;
-    int pageInt = page.toInt();
-    if (page % 1 != 0) {
-      storyControllers[pageInt].pause();
-      try {
-        storyControllers[pageInt + 1].pause();
-      } catch (error) {}
-    } else {
-      storyControllers[pageInt].play();
-      try {
-        storyControllers[pageInt + 1].play();
-      } catch (error) {}
-    }
-  }
+  // void pageInit() {
+  //   storyControllers[pageController.page!.toInt()];
+  // }
+
+  // void checkRoll() {
+  //   double page = currentPage!;
+  //   int pageInt = page.toInt();
+  //   if (page % 1 != 0) {
+  //     try {
+  //       storyControllers[pageInt].pause();
+  //       storyControllers[pageInt + 1].pause();
+  //     } catch (error) {}
+  //   } else {
+  //     try {
+  //       storyControllers[pageInt].play();
+  //       storyControllers[pageInt + 1].play();
+  //     } catch (error) {}
+  //   }
+  // }
 
   void pause(int index) {
     storyControllers[index].pause();
@@ -45,5 +54,82 @@ class StoriesController extends ScrollController {
 
   void previous(int index) {
     storyControllers[index].previous();
+  }
+}
+
+class StoryController {
+  BehaviorSubject<PlaybackState> playbackNotifier =
+      BehaviorSubject<PlaybackState>();
+  List<Story>? stories;
+  AnimationController? animationController;
+  PageController? pageController;
+  ValueNotifier<int> currentPage = ValueNotifier<int>(0);
+  double? aspectRatio;
+  double? width;
+  double? height;
+  Duration? duration;
+
+  void animComplete() {
+    animReset();
+    if (currentPage.value + 1 < stories!.length) {
+      currentPage.value += 1;
+      playbackNotifier.add(PlaybackState.play);
+    } else {
+      playbackNotifier.add(PlaybackState.onComplete);
+    }
+  }
+
+  void animReset() {
+    animationController!.stop();
+    animationController!.reset();
+  }
+
+  void setMediaSize(double width, double height) {
+    width = width;
+    height = height;
+    aspectRatio = height / width;
+  }
+
+  void setDuration(Duration duration) {
+    animationController!.duration = duration;
+  }
+
+  void pause() {
+    playbackNotifier.add(PlaybackState.pause);
+    animationController!.stop();
+  }
+
+  void play() {
+    playbackNotifier.add(PlaybackState.play);
+    animationController!.forward();
+  }
+
+  void next() {
+    animReset();
+
+    if (currentPage.value + 1 < stories!.length) {
+      currentPage.value += 1;
+    } else {
+      playbackNotifier.add(PlaybackState.onComplete);
+    }
+
+    playbackNotifier.add(PlaybackState.next);
+  }
+
+  void previous() {
+    animationController!.stop();
+    animationController!.reset();
+    if (currentPage.value - 1 >= 0) {
+      currentPage.value -= 1;
+    }
+    if (stories![currentPage.value].meadiaType == MediaType.video) {}
+    playbackNotifier.add(PlaybackState.previous);
+  }
+
+  void dispose() {
+    animationController!.dispose();
+    pageController!.dispose();
+    currentPage.dispose();
+    playbackNotifier.close();
   }
 }

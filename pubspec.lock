@@ -91,7 +91,7 @@ packages:
     source: hosted
     version: "1.0.0+1"
   flutter_cache_manager:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_cache_manager
       url: "https://pub.dartlang.org"
@@ -273,13 +273,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.10.0"
-  story_view:
-    dependency: "direct main"
-    description:
-      name: story_view
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.13.1"
   stream_channel:
     dependency: transitive
     description:
@@ -337,7 +330,7 @@ packages:
     source: hosted
     version: "2.1.0"
   video_player:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: video_player
       url: "https://pub.dartlang.org"
