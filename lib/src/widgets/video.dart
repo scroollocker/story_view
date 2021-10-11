@@ -11,9 +11,13 @@ import 'package:video_player/video_player.dart';
 class VideoWidget extends StatelessWidget {
   final StoryController storyController;
   final Story story;
+  final Widget? timeoutWidget;
+  final int? timeout;
   const VideoWidget({
     required this.story,
     required this.storyController,
+    this.timeoutWidget,
+    this.timeout,
     Key? key,
   }) : super(key: key);
 
@@ -22,8 +26,6 @@ class VideoWidget extends StatelessWidget {
     return VideoLoad(
       storyController: storyController,
       videoLoader: VideoLoader(story.path),
-      backgroundColor: Colors.white,
-      indicatorColor: Colors.blue,
     );
   }
 }
@@ -31,13 +33,13 @@ class VideoWidget extends StatelessWidget {
 class VideoLoad extends StatefulWidget {
   final StoryController storyController;
   final VideoLoader videoLoader;
-  final Color backgroundColor;
-  final Color indicatorColor;
+  final Widget? timeoutWidget;
+  final int? timeout;
   const VideoLoad({
     required this.storyController,
     required this.videoLoader,
-    required this.backgroundColor,
-    required this.indicatorColor,
+    this.timeoutWidget,
+    this.timeout,
     Key? key,
   }) : super(key: key);
 
@@ -49,9 +51,15 @@ class _VideoLoadState extends State<VideoLoad> {
   StreamSubscription? _streamSubscription;
 
   VideoPlayerController? playerController;
+  int _timer = 20;
+  int timeout = 20;
+  Timer? timer;
+
   @override
   void initState() {
     super.initState();
+    timeout = widget.timeout ?? 20;
+    _timer = timeout;
 
     widget.storyController.pause();
     widget.videoLoader.loadVideo(() {
@@ -132,35 +140,83 @@ class _VideoLoadState extends State<VideoLoad> {
         ],
       );
     }
+    if (widget.videoLoader.state == LoadState.loading) {
+      if (_timer != 0) {
+        timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (_timer == 0) {
+            setState(() {});
+            timer.cancel();
+          } else {
+            if (widget.videoLoader.state == LoadState.loading) {
+              _timer--;
+            } else {
+              _timer = widget.timeout ?? timeout;
+              timer.cancel();
+            }
+          }
+        });
+        return Container(
+          color: Colors.black,
+          child: const Center(
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: CircularProgressIndicator(
+                color: Colors.blueGrey,
+                strokeWidth: 2.0,
+              ),
+            ),
+          ),
+        );
+      }
+    }
 
-    return widget.videoLoader.state == LoadState.loading
-        ? Container(
+    if (_timer == 0) {
+      return widget.timeoutWidget ??
+          Container(
             width: double.infinity,
             height: double.infinity,
-            color: widget.backgroundColor,
-            child: Center(
-              child: SizedBox(
-                width: 70,
-                height: 70,
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(widget.indicatorColor),
-                  strokeWidth: 3,
+            color: Colors.black,
+            child: const Center(
+              child: Text(
+                "Проверьте интернет соединение",
+                style: TextStyle(
+                  color: Colors.white,
                 ),
               ),
             ),
-          )
-        : const Center(
-            child: Text(
-            "Media failed to load.",
-            style: TextStyle(
-              color: Colors.white,
-            ),
-          ));
+          );
+    }
+    //else {
+    // print(_timer);
+    // if (_timer <= timeout - 5) {
+    //   return Container(
+    //     width: double.infinity,
+    //     height: double.infinity,
+    //     color: Colors.black,
+    //     child: const Center(
+    //         child: SizedBox(
+    //       width: 50,
+    //       height: 50,
+    //       child: RefreshProgressIndicator(
+    //         color: Colors.grey,
+    //         strokeWidth: 5.0,
+    //       ),
+    //     )),
+    //   );
+    // }
+    //}
+    return Container(
+      color: Colors.black,
+    );
   }
 
   @override
   void dispose() {
+    if (timer != null) {
+      timer!.cancel();
+    }
+
     playerController?.dispose();
     _streamSubscription?.cancel();
     super.dispose();
@@ -180,6 +236,7 @@ class VideoLoader {
       state = LoadState.success;
       onComplete();
     }
+
     final fileStream = DefaultCacheManager()
         .getFileStream(url, headers: requestHeaders as Map<String, String>?);
 

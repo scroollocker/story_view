@@ -40,6 +40,7 @@ class _StorySwipeState extends State<StorySwipe> {
   @override
   Widget build(BuildContext context) {
     return Material(
+      color: Colors.black,
       child: IgnorePointer(
         ignoring: currentPageValue % 1 != 0 ? true : false,
         child: PageView.builder(

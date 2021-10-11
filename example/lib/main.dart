@@ -20,7 +20,6 @@ class MyApp extends StatelessWidget {
         body: SafeArea(
           child: Center(
             child: Stories(
-              stories: stories,
               cells: [cell, cell1, cell2],
             ),
           ),

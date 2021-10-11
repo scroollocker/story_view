@@ -7,9 +7,13 @@ import 'package:stories/src/widgets/video.dart';
 class StoryItem extends StatefulWidget {
   final Story story;
   final StoryController storyController;
+  final Widget? timeoutWidget;
+  final int? timeout;
   const StoryItem({
     required this.story,
     required this.storyController,
+    this.timeout,
+    this.timeoutWidget,
     Key? key,
   }) : super(key: key);
 
@@ -44,6 +48,8 @@ class _StoryItemState extends State<StoryItem> {
           key: UniqueKey(),
           story: widget.story,
           storyController: widget.storyController,
+          timeout: widget.timeout,
+          timeoutWidget: widget.timeoutWidget,
         ),
       );
     }

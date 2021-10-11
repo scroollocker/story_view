@@ -64,10 +64,6 @@ class StoryController {
   AnimationController? animationController;
   PageController? pageController;
   ValueNotifier<int> currentPage = ValueNotifier<int>(0);
-  double? aspectRatio;
-  double? width;
-  double? height;
-  Duration? duration;
 
   void animComplete() {
     animReset();
@@ -82,12 +78,6 @@ class StoryController {
   void animReset() {
     animationController!.stop();
     animationController!.reset();
-  }
-
-  void setMediaSize(double width, double height) {
-    width = width;
-    height = height;
-    aspectRatio = height / width;
   }
 
   void setDuration(Duration duration) {

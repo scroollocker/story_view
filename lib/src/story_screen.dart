@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stories/src/controller.dart';
@@ -14,18 +15,16 @@ typedef ActionButtonClicked = void Function();
 
 class Stories extends StatefulWidget {
   final List<StoryCell> cells;
-  final List<Story> stories;
-  final Color backgroundColor;
-  final Color indicatorbgndColor;
-  final Color indicatorColor;
+  final int? timeout;
+  final Widget? timeoutWidget;
+  final double? cellSize;
 
   const Stories({
     Key? key,
     required this.cells,
-    required this.stories,
-    this.backgroundColor = Colors.white,
-    this.indicatorbgndColor = Colors.white,
-    this.indicatorColor = Colors.blue,
+    this.timeout,
+    this.timeoutWidget,
+    this.cellSize,
   }) : super(key: key);
 
   @override
@@ -62,9 +61,11 @@ class _StoriesState extends State<Stories> {
     for (int i = 0; i < widget.cells.length; i++) {
       storyPages.add(
         StoryScreen(
-          stories: _getStories(widget.cells[i]),
+          stories: widget.cells[i].stories,
           onComplete: onPageComplete,
           controller: storiesController.storyControllers[i],
+          timeout: widget.timeout,
+          timeoutWidget: widget.timeoutWidget,
         ),
       );
     }
@@ -74,10 +75,6 @@ class _StoriesState extends State<Stories> {
   void dispose() {
     storiesController.dispose();
     super.dispose();
-  }
-
-  List<Story> _getStories(dynamic elem) {
-    return widget.stories.where((e) => e.cell == elem).toList();
   }
 
   @override
@@ -99,7 +96,7 @@ class _StoriesState extends State<Stories> {
     }
 
     return SizedBox(
-      height: 70,
+      height: widget.cellSize ?? 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: widget.cells.length,
@@ -112,9 +109,26 @@ class _StoriesState extends State<Stories> {
               padding: const EdgeInsets.all(5.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  widget.cells[index].imagePath,
-                  fit: BoxFit.cover,
+                child: CachedNetworkImage(
+                  imageUrl: widget.cells[index].imagePath,
+                  errorWidget: (context, url, error) {
+                    return Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        color: Colors.black);
+                  },
+                  imageBuilder: (context, imageProvider) {
+                    return Container(
+                      width: widget.cellSize ?? 70,
+                      height: widget.cellSize ?? 70,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -129,10 +143,14 @@ class StoryScreen extends StatefulWidget {
   final List<Story> stories;
   final VoidCallback? onComplete;
   final StoryController controller;
+  final Widget? timeoutWidget;
+  final int? timeout;
 
   const StoryScreen({
     required this.stories,
     required this.controller,
+    this.timeoutWidget,
+    this.timeout,
     Key? key,
     this.onComplete,
   });
@@ -148,7 +166,8 @@ class _StoryScreenState extends State<StoryScreen>
     super.initState();
     widget.controller.pageController = PageController();
     widget.controller.playbackNotifier = BehaviorSubject<PlaybackState>();
-    widget.controller.animationController = AnimationController(vsync: this);
+    widget.controller.animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 5));
     widget.controller.currentPage = ValueNotifier<int>(0);
     widget.controller.stories = widget.stories;
     widget.controller.currentPage.value = 0;
@@ -175,16 +194,17 @@ class _StoryScreenState extends State<StoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
-    widget.controller.setMediaSize(width, height);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
     return Scaffold(
       body: GestureDetector(
+        onTapDown: (details) {
+          widget.controller.pause();
+        },
         onTapUp: (details) {
+          widget.controller.play();
           _onTapUp(details);
         },
         onLongPressStart: (details) {
@@ -202,6 +222,8 @@ class _StoryScreenState extends State<StoryScreen>
                 StoryItem(
                   story: widget.stories[value as int],
                   storyController: widget.controller,
+                  timeout: widget.timeout,
+                  timeoutWidget: widget.timeoutWidget,
                 ),
                 Positioned(
                   top: 40.0,
