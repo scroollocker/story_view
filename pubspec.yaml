@@ -1,7 +1,7 @@
 name: stories
 description: Halyk stories component
 version: 1.0.0
-homepage:
+homepage: 
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_advanced_avatar: ^1.0.0+1
+  #flutter_advanced_avatar: ^1.0.0+1
   #story_view: ^0.13.1
   video_player: ^2.2.5
   flutter_cache_manager: ^3.1.2

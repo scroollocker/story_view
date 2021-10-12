@@ -61,15 +61,28 @@ class _StorySwipeState extends State<StorySwipe> {
               children: [
                 GestureDetector(
                   onPanUpdate: (details) {
+                    print(details.delta.dx);
                     if (details.delta.dx < -5) {
-                      widget.pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear);
+                      if (details.delta.dx > -15) {
+                        widget.pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.linear);
+                      } else {
+                        widget.pageController.nextPage(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.linear);
+                      }
                     }
                     if (details.delta.dx > 5) {
-                      widget.pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear);
+                      if (details.delta.dx < 15) {
+                        widget.pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.linear);
+                      } else {
+                        widget.pageController.previousPage(
+                            duration: const Duration(milliseconds: 150),
+                            curve: Curves.linear);
+                      }
                     }
                   },
                   child: _SwipeWidget(
