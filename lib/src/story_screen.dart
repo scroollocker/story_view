@@ -17,14 +17,16 @@ class Stories extends StatefulWidget {
   final List<StoryCell> cells;
   final int? timeout;
   final Widget? timeoutWidget;
-  final double? cellSize;
+  final double? cellHeight;
+  final double? cellWidht;
 
   const Stories({
     Key? key,
     required this.cells,
     this.timeout,
     this.timeoutWidget,
-    this.cellSize,
+    this.cellHeight,
+    this.cellWidht,
   }) : super(key: key);
 
   @override
@@ -96,7 +98,8 @@ class _StoriesState extends State<Stories> {
     }
 
     return SizedBox(
-      height: widget.cellSize ?? 70,
+      height: widget.cellHeight ?? 70,
+      width: widget.cellWidht ?? 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: widget.cells.length,
@@ -119,8 +122,8 @@ class _StoriesState extends State<Stories> {
                   },
                   imageBuilder: (context, imageProvider) {
                     return Container(
-                      width: widget.cellSize ?? 70,
-                      height: widget.cellSize ?? 70,
+                      width: widget.cellWidht ?? 70,
+                      height: widget.cellHeight ?? 70,
                       decoration: BoxDecoration(
                         image: DecorationImage(
                           image: imageProvider,
