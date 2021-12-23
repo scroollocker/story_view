@@ -99,7 +99,6 @@ class _StoriesState extends State<Stories> {
 
     return SizedBox(
       height: widget.cellHeight ?? 70,
-      width: widget.cellWidht ?? 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: widget.cells.length,
