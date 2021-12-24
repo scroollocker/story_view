@@ -114,6 +114,7 @@ class StoryController {
     }
     if (stories![currentPage.value].meadiaType == MediaType.video) {}
     playbackNotifier.add(PlaybackState.previous);
+    play();
   }
 
   void dispose() {
