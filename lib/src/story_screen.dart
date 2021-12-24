@@ -20,6 +20,7 @@ class Stories extends StatefulWidget {
   final double? cellHeight;
   final double? cellWidht;
   final bool? exitButton;
+  final bool? isRepeat;
 
   const Stories({
     Key? key,
@@ -29,6 +30,7 @@ class Stories extends StatefulWidget {
     this.cellHeight,
     this.cellWidht,
     this.exitButton = true,
+    this.isRepeat = false,
   }) : super(key: key);
 
   @override
@@ -42,6 +44,9 @@ class _StoriesState extends State<Stories> {
   void onPageComplete() {
     if (storiesController.pageController.page == widget.cells.length - 1) {
       if (!mounted) return;
+      if (widget.isRepeat!) {
+        storiesController.jumpTo(0);
+      }
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
