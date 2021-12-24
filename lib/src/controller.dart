@@ -99,12 +99,17 @@ class StoryController {
     animationController!.forward();
   }
 
-  void next() {
+  void next({bool? isRepeat}) {
     animReset();
 
     if (currentPage.value + 1 < stories!.length) {
       currentPage.value += 1;
     } else {
+      if (isRepeat ?? false) {
+        currentPage.value = 0;
+        playbackNotifier.add(PlaybackState.play);
+        return;
+      }
       playbackNotifier.add(PlaybackState.onComplete);
     }
 

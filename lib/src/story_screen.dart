@@ -313,7 +313,7 @@ class _StoryScreenState extends State<StoryScreen>
     if (dx < screenWidth / 3) {
       widget.controller.previous();
     } else if (dx > 2 * screenWidth / 3) {
-      widget.controller.next();
+      widget.controller.next(isRepeat: widget.isRepeat);
     }
   }
 }
