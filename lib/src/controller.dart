@@ -65,12 +65,17 @@ class StoryController {
   PageController? pageController;
   ValueNotifier<int> currentPage = ValueNotifier<int>(0);
 
-  void animComplete() {
+  void animComplete(bool isRepeat) {
     animReset();
     if (currentPage.value + 1 < stories!.length) {
       currentPage.value += 1;
       playbackNotifier.add(PlaybackState.play);
     } else {
+      if (isRepeat) {
+        currentPage.value = 0;
+        playbackNotifier.add(PlaybackState.play);
+        return;
+      }
       playbackNotifier.add(PlaybackState.onComplete);
     }
   }

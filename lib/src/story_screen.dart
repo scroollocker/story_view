@@ -20,7 +20,6 @@ class Stories extends StatefulWidget {
   final double? cellHeight;
   final double? cellWidht;
   final bool? exitButton;
-  final bool? isRepeat;
 
   const Stories({
     Key? key,
@@ -30,7 +29,6 @@ class Stories extends StatefulWidget {
     this.cellHeight,
     this.cellWidht,
     this.exitButton = true,
-    this.isRepeat = false,
   }) : super(key: key);
 
   @override
@@ -44,9 +42,6 @@ class _StoriesState extends State<Stories> {
   void onPageComplete() {
     if (storiesController.pageController.page == widget.cells.length - 1) {
       if (!mounted) return;
-      if (widget.isRepeat!) {
-        storiesController.jumpTo(0);
-      }
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
@@ -163,12 +158,14 @@ class StoryScreen extends StatefulWidget {
   final Widget? timeoutWidget;
   final int? timeout;
   final bool? exitButton;
+  final bool? isRepeat;
 
   const StoryScreen({
     required this.stories,
     required this.controller,
     this.timeoutWidget,
     this.timeout,
+    this.isRepeat = false,
     this.exitButton = true,
     Key? key,
     this.onComplete,
@@ -192,7 +189,7 @@ class _StoryScreenState extends State<StoryScreen>
     widget.controller.currentPage.value = 0;
     widget.controller.animationController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        widget.controller.animComplete();
+        widget.controller.animComplete(widget.isRepeat!);
       }
     });
 

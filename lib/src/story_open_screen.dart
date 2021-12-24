@@ -19,8 +19,8 @@ class StoriesOpen extends StatefulWidget {
     this.timeoutWidget,
     this.cellHeight,
     this.cellWidht,
-    this.exitButton = true,
     this.isRepeat = false,
+    this.exitButton = true,
   }) : super(key: key);
 
   @override
@@ -34,9 +34,6 @@ class _StoriesOpenState extends State<StoriesOpen> {
   void onPageComplete() {
     if (storiesController.pageController.page == widget.cells.length - 1) {
       if (!mounted) return;
-      if (widget.isRepeat!) {
-        storiesController.jumpTo(0);
-      }
       if (Navigator.canPop(context)) {
         Navigator.of(context).pop();
       }
@@ -66,6 +63,7 @@ class _StoriesOpenState extends State<StoriesOpen> {
           timeout: widget.timeout,
           timeoutWidget: widget.timeoutWidget,
           exitButton: widget.exitButton,
+          isRepeat: widget.isRepeat,
         ),
       );
     }
