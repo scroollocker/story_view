@@ -9,6 +9,7 @@ class StoriesOpen extends StatefulWidget {
   final Widget? timeoutWidget;
   final double? cellHeight;
   final double? cellWidht;
+  final bool? exitButton;
 
   const StoriesOpen({
     Key? key,
@@ -17,6 +18,7 @@ class StoriesOpen extends StatefulWidget {
     this.timeoutWidget,
     this.cellHeight,
     this.cellWidht,
+    this.exitButton = true,
   }) : super(key: key);
 
   @override
@@ -58,6 +60,7 @@ class _StoriesOpenState extends State<StoriesOpen> {
           controller: storiesController.storyControllers[i],
           timeout: widget.timeout,
           timeoutWidget: widget.timeoutWidget,
+          exitButton: widget.exitButton,
         ),
       );
     }

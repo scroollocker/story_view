@@ -19,6 +19,7 @@ class Stories extends StatefulWidget {
   final Widget? timeoutWidget;
   final double? cellHeight;
   final double? cellWidht;
+  final bool? exitButton;
 
   const Stories({
     Key? key,
@@ -27,6 +28,7 @@ class Stories extends StatefulWidget {
     this.timeoutWidget,
     this.cellHeight,
     this.cellWidht,
+    this.exitButton = true,
   }) : super(key: key);
 
   @override
@@ -68,6 +70,7 @@ class _StoriesState extends State<Stories> {
           controller: storiesController.storyControllers[i],
           timeout: widget.timeout,
           timeoutWidget: widget.timeoutWidget,
+          exitButton: widget.exitButton,
         ),
       );
     }
@@ -154,12 +157,14 @@ class StoryScreen extends StatefulWidget {
   final StoryController controller;
   final Widget? timeoutWidget;
   final int? timeout;
+  final bool? exitButton;
 
   const StoryScreen({
     required this.stories,
     required this.controller,
     this.timeoutWidget,
     this.timeout,
+    this.exitButton = true,
     Key? key,
     this.onComplete,
   });
@@ -260,25 +265,27 @@ class _StoryScreenState extends State<StoryScreen>
                     ],
                   ),
                 ),
-                Positioned(
-                  right: 15,
-                  top: 60,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Center(
-                        child: InkWell(
-                            onTap: () => Navigator.pop(context),
-                            child: const Icon(Icons.close,
-                                color: Color(0xffB6BCC3))),
-                      ),
-                    ),
-                    decoration: const BoxDecoration(
-                        shape: BoxShape.circle, color: Colors.white24),
-                  ),
-                ),
+                widget.exitButton!
+                    ? Positioned(
+                        right: 15,
+                        top: 60,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: Center(
+                              child: InkWell(
+                                  onTap: () => Navigator.pop(context),
+                                  child: const Icon(Icons.close,
+                                      color: Color(0xffB6BCC3))),
+                            ),
+                          ),
+                          decoration: const BoxDecoration(
+                              shape: BoxShape.circle, color: Colors.white24),
+                        ),
+                      )
+                    : const SizedBox(),
                 widget.stories[widget.controller.currentPage.value]
                         .actionButton ??
                     const SizedBox(),
