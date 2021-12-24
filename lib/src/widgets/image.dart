@@ -82,6 +82,7 @@ class _ImageWigetState extends State<ImageWiget> {
   }
 
   Widget getAssetImage(Story story) {
+    widget.storyController.play();
     return ClipRRect(
       child: Stack(
         alignment: Alignment.center,
