@@ -81,6 +81,32 @@ class _ImageWigetState extends State<ImageWiget> {
     );
   }
 
+  Widget getAssetImage(Story story) {
+    return ClipRRect(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              widget.story.path,
+              fit: BoxFit.cover,
+            ),
+          ),
+          BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+            child: Container(
+              color: Colors.black.withOpacity(0.3),
+            ),
+          ),
+          Image.asset(
+            widget.story.path,
+            fit: BoxFit.fitWidth,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,7 +128,9 @@ class _ImageWigetState extends State<ImageWiget> {
     // );
     return Container(
       color: Colors.black,
-      child: getImage(widget.story),
+      child: widget.story.path.contains('http')
+          ? getImage(widget.story)
+          : getAssetImage(widget.story),
     );
   }
 }

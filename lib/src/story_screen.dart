@@ -111,27 +111,34 @@ class _StoriesState extends State<Stories> {
               padding: const EdgeInsets.all(5.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: widget.cells[index].imagePath,
-                  errorWidget: (context, url, error) {
-                    return Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        color: Colors.black);
-                  },
-                  imageBuilder: (context, imageProvider) {
-                    return Container(
-                      width: widget.cellWidht ?? 70,
-                      height: widget.cellHeight ?? 70,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: imageProvider,
-                          fit: BoxFit.cover,
-                        ),
+                child: widget.cells[index].imagePath.contains('http')
+                    ? CachedNetworkImage(
+                        imageUrl: widget.cells[index].imagePath,
+                        errorWidget: (context, url, error) {
+                          return Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              color: Colors.black);
+                        },
+                        imageBuilder: (context, imageProvider) {
+                          return Container(
+                            width: widget.cellWidht ?? 70,
+                            height: widget.cellHeight ?? 70,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        widget.cells[index].imagePath,
+                        height: widget.cellHeight ?? 70,
+                        width: widget.cellWidht ?? 70,
+                        fit: BoxFit.cover,
                       ),
-                    );
-                  },
-                ),
               ),
             ),
           );
@@ -274,9 +281,9 @@ class _StoryScreenState extends State<StoryScreen>
                 ),
                 widget.stories[widget.controller.currentPage.value]
                         .actionButton ??
-                    Container(),
+                    const SizedBox(),
                 widget.stories[widget.controller.currentPage.value].child ??
-                    Container(),
+                    const SizedBox(),
               ],
             );
           },
