@@ -3,8 +3,6 @@ import 'package:stories/src/controller.dart';
 import 'package:stories/src/widgets/swipe.dart';
 import 'package:stories/stories.dart';
 
-typedef ActionButtonClicked = void Function();
-
 class StoriesOpen extends StatefulWidget {
   final List<StoryCell> cells;
   final int? timeout;
