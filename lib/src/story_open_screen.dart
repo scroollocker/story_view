@@ -20,10 +20,10 @@ class StoriesOpen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _StoriesState createState() => _StoriesState();
+  _StoriesOpenState createState() => _StoriesOpenState();
 }
 
-class _StoriesState extends State<Stories> {
+class _StoriesOpenState extends State<StoriesOpen> {
   List<StoryScreen> storyPages = [];
   late StoriesController storiesController;
 
