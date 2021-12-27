@@ -269,22 +269,32 @@ class _StoryScreenState extends State<StoryScreen>
                 ),
                 widget.exitButton!
                     ? Positioned(
-                        right: 15,
-                        top: 60,
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          child: Material(
-                            color: Colors.transparent,
+                        right: 5,
+                        top: 50,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
                             child: Center(
-                              child: InkWell(
-                                  onTap: () => Navigator.pop(context),
-                                  child: const Icon(Icons.close,
-                                      color: Color(0xffB6BCC3))),
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white24),
+                                child: const Material(
+                                  color: Colors.transparent,
+                                  child: Center(
+                                      child: Icon(Icons.close,
+                                          color: Color(0xffB6BCC3))),
+                                ),
+                              ),
                             ),
                           ),
-                          decoration: const BoxDecoration(
-                              shape: BoxShape.circle, color: Colors.white24),
                         ),
                       )
                     : const SizedBox(),
