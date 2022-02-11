@@ -46,6 +46,7 @@ class _StorySwipeState extends State<StorySwipe> {
         child: PageView.builder(
           controller: widget.pageController,
           itemCount: widget.children.length,
+          allowImplicitScrolling: true,
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             double value;
@@ -61,7 +62,6 @@ class _StorySwipeState extends State<StorySwipe> {
               children: [
                 GestureDetector(
                   onPanUpdate: (details) {
-                    print(details.delta.dx);
                     if (details.delta.dx < -5) {
                       if (details.delta.dx > -15) {
                         widget.pageController.nextPage(

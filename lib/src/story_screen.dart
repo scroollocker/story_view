@@ -281,16 +281,16 @@ class _StoryScreenState extends State<StoryScreen>
                             ),
                             child: Center(
                               child: Container(
-                                width: 30,
-                                height: 30,
+                                width: 32,
+                                height: 32,
                                 decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.white24),
                                 child: const Material(
                                   color: Colors.transparent,
                                   child: Center(
-                                      child: Icon(Icons.close,
-                                          color: Color(0xffB6BCC3))),
+                                      child: Icon(Icons.close_rounded,
+                                          color: Colors.white)),
                                 ),
                               ),
                             ),
