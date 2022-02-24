@@ -47,7 +47,7 @@ class _StoriesOpenState extends State<StoriesOpen> {
     super.initState();
 
     storiesController = StoriesController(
-      pageController: PageController(initialPage: 0),
+      pageController: PageController(initialPage: 0),// viewportFraction: 0.99),
       storyControllers: List.generate(
         widget.cells.length,
         (_) => StoryController(),

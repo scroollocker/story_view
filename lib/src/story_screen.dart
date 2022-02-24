@@ -55,7 +55,8 @@ class _StoriesState extends State<Stories> {
     super.initState();
 
     storiesController = StoriesController(
-      pageController: PageController(initialPage: 0),
+      pageController:
+          PageController(initialPage: 0), //, viewportFraction: 0.99),
       storyControllers: List.generate(
         widget.cells.length,
         (_) => StoryController(),
@@ -111,7 +112,8 @@ class _StoriesState extends State<Stories> {
               _onStorySwipeClicked(index);
             },
             child: Padding(
-              padding: const EdgeInsets.all(5.0),
+              padding:
+                  const EdgeInsets.all(5.0).copyWith(left: index == 0 ? 16 : 5),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: widget.cells[index].imagePath.contains('http')

@@ -46,7 +46,7 @@ class _StorySwipeState extends State<StorySwipe> {
         child: PageView.builder(
           controller: widget.pageController,
           itemCount: widget.children.length,
-          allowImplicitScrolling: true,
+          //allowImplicitScrolling: true,
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             double value;
