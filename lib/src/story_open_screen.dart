@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:stories/src/controller.dart';
-import 'package:stories/src/widgets/swipe.dart';
+import 'package:stories/src/story_screen.dart';
 import 'package:stories/stories.dart';
 
 class StoriesOpen extends StatefulWidget {
-  final List<StoryCell> cells;
+  final StoryCell cell;
   final int? timeout;
   final Widget? timeoutWidget;
   final double? cellHeight;
   final double? cellWidht;
-  final bool? exitButton;
-  final bool? isRepeat;
+  final bool exitButton;
+  final bool isRepeat;
 
   const StoriesOpen({
     Key? key,
-    required this.cells,
+    required this.cell,
     this.timeout,
     this.timeoutWidget,
     this.cellHeight,
     this.cellWidht,
-    this.isRepeat = false,
-    this.exitButton = true,
+    this.isRepeat = true,
+    this.exitButton = false,
   }) : super(key: key);
 
   @override
@@ -28,59 +28,31 @@ class StoriesOpen extends StatefulWidget {
 }
 
 class _StoriesOpenState extends State<StoriesOpen> {
-  List<StoryScreen> storyPages = [];
   late StoriesController storiesController;
-
-  void onPageComplete() {
-    if (storiesController.pageController.page == widget.cells.length - 1) {
-      if (!mounted) return;
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
-    }
-    storiesController.pageController.nextPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.linear);
-  }
+  late StoryController controller;
 
   @override
   void initState() {
     super.initState();
-
-    storiesController = StoriesController(
-      pageController: PageController(initialPage: 0),// viewportFraction: 0.99),
-      storyControllers: List.generate(
-        widget.cells.length,
-        (_) => StoryController(),
-      ),
-    );
-
-    for (int i = 0; i < widget.cells.length; i++) {
-      storyPages.add(
-        StoryScreen(
-          stories: widget.cells[i].stories,
-          onComplete: onPageComplete,
-          controller: storiesController.storyControllers[i],
-          timeout: widget.timeout,
-          timeoutWidget: widget.timeoutWidget,
-          exitButton: widget.exitButton,
-          isRepeat: widget.isRepeat,
-        ),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    storiesController.dispose();
-    super.dispose();
+    controller = StoryController(0);
+    storiesController = StoriesController();
   }
 
   @override
   Widget build(BuildContext context) {
-    return StorySwipe(
-      children: storyPages,
-      pageController: storiesController.pageController,
-      storiesController: storiesController,
+    return Material(
+      color: Colors.black,
+      child: StoryScreen(
+        id: 0,
+        storyController: controller,
+        storiesController: storiesController,
+        stories: widget.cell.stories,
+        initialPage: 0,
+        timeout: widget.timeout,
+        timeoutWidget: widget.timeoutWidget,
+        exitButton: widget.exitButton,
+        isRepeat: widget.isRepeat,
+      ),
     );
   }
 }

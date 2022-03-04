@@ -1,23 +1,35 @@
 import 'dart:ui';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:stories/src/controller.dart';
+import 'package:stories/src/helper/behavior_helper.dart';
+import 'package:stories/src/models/story.dart';
 import 'package:stories/src/story_screen.dart';
 import 'package:vector_math/vector_math.dart' as rad;
 
 class StorySwipe extends StatefulWidget {
-  final List<StoryScreen> children;
+  final List<StoryCell> cells;
+  final List<StoryController> storyControllers;
+  final int initialPage;
+  final int timeout;
+  final Widget timeoutWidget;
+  final bool exitButton;
   final PageController pageController;
   final StoriesController storiesController;
+  final VoidCallback onPageComplete;
 
-  StorySwipe({
+  const StorySwipe({
     Key? key,
-    required this.children,
     required this.pageController,
     required this.storiesController,
-  })  : assert(children.isNotEmpty),
-        super(key: key);
+    required this.cells,
+    required this.storyControllers,
+    required this.initialPage,
+    required this.timeout,
+    required this.timeoutWidget,
+    required this.exitButton,
+    required this.onPageComplete,
+  }) : super(key: key);
 
   @override
   _StorySwipeState createState() => _StorySwipeState();
@@ -25,73 +37,68 @@ class StorySwipe extends StatefulWidget {
 
 class _StorySwipeState extends State<StorySwipe> {
   double currentPageValue = 0.0;
+  late PageController _pageController;
+  List<StoryScreen> storyPages = [];
 
   @override
   void initState() {
     super.initState();
+    _pageController = widget.pageController;
+    _pageController.addListener(listener);
 
-    widget.pageController.addListener(() {
-      setState(() {
-        currentPageValue = widget.pageController.page!;
-      });
+    storyPages = List.generate(
+      widget.cells.length,
+      (i) => StoryScreen(
+        id: i,
+        storyController: widget.storyControllers[i],
+        storiesController: widget.storiesController,
+        stories: widget.cells[i].stories,
+        onComplete: widget.onPageComplete,
+        initialPage: widget.initialPage,
+        timeout: widget.timeout,
+        timeoutWidget: widget.timeoutWidget,
+        exitButton: widget.exitButton,
+      ),
+    );
+  }
+
+  void listener() {
+    setState(() {
+      currentPageValue = _pageController.page!;
     });
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(listener);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.black,
-      child: IgnorePointer(
-        ignoring: currentPageValue % 1 != 0 ? true : false,
+      child: ScrollConfiguration(
+        behavior: MyBehavior(),
         child: PageView.builder(
-          controller: widget.pageController,
-          itemCount: widget.children.length,
-          //allowImplicitScrolling: true,
-          physics: const NeverScrollableScrollPhysics(),
+          controller: _pageController,
+          itemCount: storyPages.length,
+          scrollDirection: Axis.horizontal,
+          pageSnapping: true,
+          allowImplicitScrolling: true,
           itemBuilder: (context, index) {
             double value;
-
-            if (widget.pageController.position.haveDimensions == false) {
+            widget.storyControllers[index].setId(index);
+            if (_pageController.position.haveDimensions == false) {
               value = index.toDouble();
             } else {
-              value = widget.pageController.page!;
+              value = _pageController.page!;
             }
 
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                GestureDetector(
-                  onPanUpdate: (details) {
-                    if (details.delta.dx < -5) {
-                      if (details.delta.dx > -15) {
-                        widget.pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.linear);
-                      } else {
-                        widget.pageController.nextPage(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.linear);
-                      }
-                    }
-                    if (details.delta.dx > 5) {
-                      if (details.delta.dx < 15) {
-                        widget.pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.linear);
-                      } else {
-                        widget.pageController.previousPage(
-                            duration: const Duration(milliseconds: 150),
-                            curve: Curves.linear);
-                      }
-                    }
-                  },
-                  child: _SwipeWidget(
-                    index: index,
-                    pageNotifier: value,
-                    child: widget.children[index],
-                  ),
-                ),
-              ],
+            return _SwipeWidget(
+              index: index,
+              pageNotifier: value,
+              child: storyPages[index],
             );
           },
         ),
@@ -99,8 +106,6 @@ class _StorySwipeState extends State<StorySwipe> {
     );
   }
 }
-
-num degToRad(num deg) => deg * (pi / 180.0);
 
 class _SwipeWidget extends StatelessWidget {
   final int index;
@@ -119,24 +124,12 @@ class _SwipeWidget extends StatelessWidget {
     final isLeaving = (index - pageNotifier) <= 0;
     final t = (index - pageNotifier);
     final rotationY = lerpDouble(0, 90, t);
-    final opacity = lerpDouble(0, 1, t.abs())!.clamp(0.0, 1.0);
     final transform = Matrix4.identity();
     transform.setEntry(3, 2, 0.001);
     transform.rotateY(-rad.radians(rotationY!));
     return Transform(
-      alignment: isLeaving ? Alignment.centerRight : Alignment.centerLeft,
-      transform: transform,
-      child: Stack(
-        children: [
-          child,
-          Positioned.fill(
-            child: Opacity(
-              opacity: opacity,
-              child: const SizedBox.shrink(),
-            ),
-          ),
-        ],
-      ),
-    );
+        alignment: isLeaving ? Alignment.centerRight : Alignment.centerLeft,
+        transform: transform,
+        child: child);
   }
 }

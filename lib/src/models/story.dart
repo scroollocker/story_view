@@ -30,3 +30,18 @@ class Story {
     this.actionButton,
   });
 }
+
+enum StoryStatus { ready, loading, error }
+
+class StoryReady {
+  int? id;
+  StoryStatus status;
+  Duration? duration;
+  final Story story;
+
+  StoryReady(
+      {this.id,
+      this.status = StoryStatus.loading,
+      this.duration,
+      required this.story});
+}

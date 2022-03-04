@@ -8,47 +8,38 @@ import 'package:stories/src/controller.dart';
 import 'package:stories/src/models/story.dart';
 import 'package:video_player/video_player.dart';
 
-class VideoWidget extends StatelessWidget {
-  final StoryController storyController;
+class VideoWidget extends StatefulWidget {
+  final int id;
   final Story story;
   final Widget? timeoutWidget;
+  final StoryController controller;
   final int? timeout;
+  final Widget? loadingWidget;
+
+  final Function(int id, Duration duration)? onReady;
+  final Function(int id)? onLoading;
+  final Function(dynamic error)? onError;
+
   const VideoWidget({
+    required this.id,
     required this.story,
-    required this.storyController,
+    required this.controller,
     this.timeoutWidget,
     this.timeout,
+    this.onReady,
+    this.onLoading,
+    this.onError,
+    this.loadingWidget,
     Key? key,
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return VideoLoad(
-      storyController: storyController,
-      videoLoader: VideoLoader(story.path),
-    );
-  }
+  State<VideoWidget> createState() => _VideoWidgetState();
 }
 
-class VideoLoad extends StatefulWidget {
-  final StoryController storyController;
-  final VideoLoader videoLoader;
-  final Widget? timeoutWidget;
-  final int? timeout;
-  const VideoLoad({
-    required this.storyController,
-    required this.videoLoader,
-    this.timeoutWidget,
-    this.timeout,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  _VideoLoadState createState() => _VideoLoadState();
-}
-
-class _VideoLoadState extends State<VideoLoad> {
+class _VideoWidgetState extends State<VideoWidget> {
   StreamSubscription? _streamSubscription;
+  late VideoLoader videoLoader;
 
   VideoPlayerController? playerController;
   int _timer = 20;
@@ -61,44 +52,54 @@ class _VideoLoadState extends State<VideoLoad> {
     timeout = widget.timeout ?? 20;
     _timer = timeout;
 
-    widget.storyController.pause();
-    widget.videoLoader.loadVideo(() {
-      if (widget.videoLoader.state == LoadState.success) {
-        playerController =
-            VideoPlayerController.file(widget.videoLoader.videoFile!);
+    videoLoader = VideoLoader(widget.story.path);
 
-        playerController!.initialize().then((v) {
-          widget.storyController.animationController!.duration =
-              playerController!.value.duration;
+    widget.controller.pause = _pause;
+    widget.controller.play = _play;
+    widget.controller.repeat = _repeat;
+    widget.controller.reset = _reset;
+
+    videoLoader.loadVideo(() {
+      if (videoLoader.state == LoadState.success) {
+        playerController = VideoPlayerController.file(videoLoader.videoFile!);
+
+        playerController!.initialize().then((_) {
+          widget.onReady?.call(widget.id, playerController!.value.duration);
           setState(() {});
-          widget.storyController.play();
         });
-
-        _streamSubscription =
-            widget.storyController.playbackNotifier.listen((playbackState) {
-          if (playbackState == PlaybackState.pause) {
-            playerController!.pause();
-            widget.storyController.animationController!.stop();
-          } else if (playbackState == PlaybackState.previous) {
-            playerController!.seekTo(const Duration(seconds: 0));
-            playerController!.play();
-            widget.storyController.animationController!.forward();
-          } else {
-            playerController!.play();
-            widget.storyController.animationController!.forward();
-          }
-        });
-      } else {
+      } else if (videoLoader.state == LoadState.loading) {
+        widget.onLoading?.call(widget.id);
+        setState(() {});
+      } else if (videoLoader.state == LoadState.failure) {
+        widget.onError?.call('Ошибка');
         setState(() {});
       }
     });
+  }
+
+  void _pause() {
+    playerController?.pause();
+  }
+
+  void _play() {
+    playerController?.play();
+  }
+
+  void _repeat() {
+    playerController?.seekTo(const Duration(seconds: 0));
+    playerController?.play();
+  }
+
+  void _reset() {
+    playerController?.seekTo(const Duration(seconds: 0));
+    playerController?.pause();
   }
 
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
-    if (widget.videoLoader.state == LoadState.success &&
+    if (videoLoader.state == LoadState.success &&
         playerController!.value.isInitialized) {
       double widthAspect = (playerController!.value.size.width - width) / width;
       double heightAspect =
@@ -115,9 +116,12 @@ class _VideoLoadState extends State<VideoLoad> {
                   right: -widthAspect * width / 2,
                   top: -heightAspect * height / 2,
                   bottom: -heightAspect * height / 2,
-                  child: AspectRatio(
-                    aspectRatio: playerController!.value.aspectRatio,
-                    child: VideoPlayer(playerController!),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    child: AspectRatio(
+                      aspectRatio: playerController!.value.aspectRatio,
+                      child: VideoPlayer(playerController!),
+                    ),
                   ),
                 ),
                 BackdropFilter(
@@ -140,14 +144,14 @@ class _VideoLoadState extends State<VideoLoad> {
         ],
       );
     }
-    if (widget.videoLoader.state == LoadState.loading) {
+    if (videoLoader.state == LoadState.loading) {
       if (_timer != 0) {
         timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (_timer == 0) {
             setState(() {});
             timer.cancel();
           } else {
-            if (widget.videoLoader.state == LoadState.loading) {
+            if (videoLoader.state == LoadState.loading) {
               _timer--;
             } else {
               _timer = widget.timeout ?? timeout;
@@ -155,6 +159,9 @@ class _VideoLoadState extends State<VideoLoad> {
             }
           }
         });
+        if (widget.loadingWidget != null) {
+          return widget.loadingWidget!;
+        }
         return Container(
           color: Colors.black,
           child: const Center(
@@ -187,25 +194,6 @@ class _VideoLoadState extends State<VideoLoad> {
             ),
           );
     }
-    //else {
-    // print(_timer);
-    // if (_timer <= timeout - 5) {
-    //   return Container(
-    //     width: double.infinity,
-    //     height: double.infinity,
-    //     color: Colors.black,
-    //     child: const Center(
-    //         child: SizedBox(
-    //       width: 50,
-    //       height: 50,
-    //       child: RefreshProgressIndicator(
-    //         color: Colors.grey,
-    //         strokeWidth: 5.0,
-    //       ),
-    //     )),
-    //   );
-    // }
-    //}
     return Container(
       color: Colors.black,
     );

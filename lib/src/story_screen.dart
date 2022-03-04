@@ -1,177 +1,40 @@
-import 'dart:ui';
+import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stories/src/controller.dart';
+import 'package:stories/src/models/story.dart';
+import 'package:stories/src/story_listen.dart';
 import 'package:stories/src/widgets/animated_bar.dart';
 import 'package:stories/src/widgets/story_item.dart';
-import 'package:stories/src/widgets/swipe.dart';
-import 'package:stories/stories.dart';
-
-import 'package:rxdart/rxdart.dart';
-
-typedef ActionButtonClicked = void Function();
-
-class Stories extends StatefulWidget {
-  final List<StoryCell> cells;
-  final int? timeout;
-  final Widget? timeoutWidget;
-  final double? cellHeight;
-  final double? cellWidht;
-  final bool? exitButton;
-
-  const Stories({
-    Key? key,
-    required this.cells,
-    this.timeout,
-    this.timeoutWidget,
-    this.cellHeight,
-    this.cellWidht,
-    this.exitButton = true,
-  }) : super(key: key);
-
-  @override
-  _StoriesState createState() => _StoriesState();
-}
-
-class _StoriesState extends State<Stories> {
-  List<StoryScreen> storyPages = [];
-  late StoriesController storiesController;
-
-  void onPageComplete() {
-    if (storiesController.pageController.page == widget.cells.length - 1) {
-      if (!mounted) return;
-      if (Navigator.canPop(context)) {
-        Navigator.of(context).pop();
-      }
-    }
-    storiesController.pageController.nextPage(
-        duration: const Duration(milliseconds: 300), curve: Curves.linear);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    storiesController = StoriesController(
-      pageController:
-          PageController(initialPage: 0), //, viewportFraction: 0.99),
-      storyControllers: List.generate(
-        widget.cells.length,
-        (_) => StoryController(),
-      ),
-    );
-
-    for (int i = 0; i < widget.cells.length; i++) {
-      storyPages.add(
-        StoryScreen(
-          stories: widget.cells[i].stories,
-          onComplete: onPageComplete,
-          controller: storiesController.storyControllers[i],
-          timeout: widget.timeout,
-          timeoutWidget: widget.timeoutWidget,
-          exitButton: widget.exitButton,
-        ),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    storiesController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _onStorySwipeClicked(int initialPage) {
-      storiesController.pageController =
-          PageController(initialPage: initialPage);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => StorySwipe(
-            children: storyPages,
-            pageController: storiesController.pageController,
-            storiesController: storiesController,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: widget.cellHeight ?? 70,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: widget.cells.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              _onStorySwipeClicked(index);
-            },
-            child: Padding(
-              padding:
-                  const EdgeInsets.all(5.0).copyWith(left: index == 0 ? 16 : 5),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: widget.cells[index].imagePath.contains('http')
-                    ? CachedNetworkImage(
-                        imageUrl: widget.cells[index].imagePath,
-                        errorWidget: (context, url, error) {
-                          return Container(
-                              width: double.infinity,
-                              height: double.infinity,
-                              color: Colors.black);
-                        },
-                        imageBuilder: (context, imageProvider) {
-                          return Container(
-                            width: widget.cellWidht ?? 70,
-                            height: widget.cellHeight ?? 70,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: imageProvider,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : Image.asset(
-                        widget.cells[index].imagePath,
-                        height: widget.cellHeight ?? 70,
-                        width: widget.cellWidht ?? 70,
-                        fit: BoxFit.cover,
-                      ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
 
 class StoryScreen extends StatefulWidget {
+  final int id;
   final List<Story> stories;
+  final StoryController storyController;
+  final StoriesController storiesController;
+  final int initialPage;
+  final int initialId;
   final VoidCallback? onComplete;
-  final StoryController controller;
   final Widget? timeoutWidget;
   final int? timeout;
-  final bool? exitButton;
-  final bool? isRepeat;
+  final bool exitButton;
+  final bool isRepeat;
 
   const StoryScreen({
+    Key? key,
+    required this.id,
     required this.stories,
-    required this.controller,
+    required this.storyController,
+    required this.storiesController,
     this.timeoutWidget,
+    this.initialId = 0,
+    this.initialPage = 0,
     this.timeout,
     this.isRepeat = false,
     this.exitButton = true,
-    Key? key,
     this.onComplete,
-  });
+  }) : super(key: key);
 
   @override
   _StoryScreenState createState() => _StoryScreenState();
@@ -179,98 +42,258 @@ class StoryScreen extends StatefulWidget {
 
 class _StoryScreenState extends State<StoryScreen>
     with SingleTickerProviderStateMixin {
+  late PageController _pageController;
+  late AnimationController _animationController;
+  late StoryListen _storyListen;
+
+  bool init = true;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.pageController = PageController();
-    widget.controller.playbackNotifier = BehaviorSubject<PlaybackState>();
-    widget.controller.animationController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 5));
-    widget.controller.currentPage = ValueNotifier<int>(0);
-    widget.controller.stories = widget.stories;
-    widget.controller.currentPage.value = 0;
-    widget.controller.animationController!.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        widget.controller.animComplete(widget.isRepeat!);
+
+    widget.storyController.status = StreamController<PlaybackState>(
+      onListen: () => _reset(),
+    );
+
+    widget.storyController.status?.add(PlaybackState.pause);
+
+    _storyListen = StoryListen(
+        List.generate(widget.stories.length,
+            (index) => StoryReady(story: widget.stories[index])),
+        widget.initialId);
+
+    _storyListen.addListener(storyListener);
+    widget.storyController.status?.stream.listen((event) {
+      switch (event) {
+        case PlaybackState.play:
+          {
+            _play();
+            break;
+          }
+        case PlaybackState.pause:
+          {
+            _pause();
+            break;
+          }
+        case PlaybackState.next:
+          {
+            _nextPage();
+            break;
+          }
+        case PlaybackState.previous:
+          {
+            _previousPage();
+            break;
+          }
+        case PlaybackState.reset:
+          {
+            _reset();
+            break;
+          }
+        case PlaybackState.repeat:
+          {
+            _repeat();
+            break;
+          }
+        case PlaybackState.wait:
+          {
+            break;
+          }
+        default:
+          {
+            _reset();
+            break;
+          }
       }
     });
 
-    widget.controller.playbackNotifier.listen((state) {
-      if (state == PlaybackState.onComplete) {
-        _onComplete();
+    _pageController = PageController(initialPage: widget.initialId);
+    _animationController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 5));
+
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        widget.storyController.status?.add(PlaybackState.next);
       }
     });
   }
 
+  void _play() {
+    try {
+      _animationController.forward();
+    } catch (_) {}
+    if (widget.stories[_storyListen.currentPage].meadiaType ==
+        MediaType.video) {
+      widget.storyController.play?.call();
+    }
+  }
+
+  void _pause() {
+    try {
+      _animationController.stop();
+    } catch (_) {}
+    if (widget.stories[_storyListen.currentPage].meadiaType ==
+        MediaType.video) {
+      widget.storyController.pause?.call();
+    }
+  }
+
+  void _repeat() {
+    try {
+      _animationController.reset();
+      _animationController.forward();
+    } catch (_) {}
+    if (widget.stories[_storyListen.currentPage].meadiaType ==
+        MediaType.video) {
+      widget.storyController.repeat?.call();
+    }
+  }
+
+  void _reset() {
+    try {
+      _animationController.reset();
+    } catch (_) {}
+    if (widget.stories[_storyListen.currentPage].meadiaType ==
+        MediaType.video) {
+      widget.storyController.reset?.call();
+    }
+  }
+
+  void _nextPage() {
+    if (_storyListen.currentPage == widget.stories.length - 1) {
+      if (widget.isRepeat) {
+        _storyListen.changePage(currentPage: 0);
+        _pageController.jumpToPage(0);
+      } else {
+        widget.onComplete?.call();
+      }
+    } else {
+      _storyListen.pageIncrement();
+      _pageController.jumpToPage(_storyListen.currentPage);
+    }
+  }
+
+  void _previousPage() {
+    if (_storyListen.currentPage == 0) {
+      _storyListen.changePage(currentPage: 0);
+      _pageController.jumpToPage(0);
+    } else {
+      _storyListen.pageDecrement();
+      _pageController.jumpToPage(_storyListen.currentPage);
+    }
+  }
+
+  void storyListener() {
+    _animationController.duration = _storyListen.getCurrentDuration();
+    if (widget.storiesController.init == true) {
+      if (widget.initialPage == widget.storyController.id) {
+        widget.storyController.status?.add(PlaybackState.repeat);
+      } else {
+        widget.storyController.status?.add(PlaybackState.reset);
+      }
+      if (widget.initialPage + 1 == widget.stories.length) {
+        if (widget.initialPage + 1 == widget.storyController.id) {
+          widget.storiesController.init = false;
+        }
+      }
+
+      return;
+    }
+
+    widget.storyController.status?.add(PlaybackState.repeat);
+  }
+
   @override
   void dispose() {
-    widget.controller.currentPage.value = 0;
-
-    widget.controller.dispose();
+    widget.storyController.status?.close();
+    _storyListen.removeListener(storyListener);
+    _storyListen.dispose();
+    _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    double mediaWidth = MediaQuery.of(context).size.width;
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
     return Scaffold(
       body: GestureDetector(
-        onTapDown: (details) {
-          widget.controller.pause();
-        },
-        onTapUp: (details) {
-          widget.controller.play();
-          _onTapUp(details);
-        },
-        onLongPressStart: (details) {
-          widget.controller.pause();
-        },
-        onLongPressUp: () {
-          widget.controller.play();
-        },
-        child: ValueListenableBuilder(
-          valueListenable: widget.controller.currentPage,
-          builder: (context, value, child) {
-            return Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                StoryItem(
-                  story: widget.stories[value as int],
-                  storyController: widget.controller,
-                  timeout: widget.timeout,
-                  timeoutWidget: widget.timeoutWidget,
-                ),
-                Positioned(
-                  top: 40.0,
-                  left: 10.0,
-                  right: 10.0,
-                  child: Column(
-                    children: <Widget>[
-                      Row(
-                        children: widget.stories
-                            .asMap()
-                            .map((i, e) {
-                              return MapEntry(
-                                i,
-                                AnimatedBar(
-                                  animController:
-                                      widget.controller.animationController!,
-                                  position: i,
-                                  currentIndex: value,
-                                ),
-                              );
-                            })
-                            .values
-                            .toList(),
+        onTapDown: (details) =>
+            widget.storyController.status?.add(PlaybackState.pause),
+        onTapUp: (details) =>
+            widget.storyController.status?.add(PlaybackState.play),
+        onLongPressStart: (details) =>
+            widget.storyController.status?.add(PlaybackState.pause),
+        onLongPressUp: () =>
+            widget.storyController.status?.add(PlaybackState.play),
+        child: Stack(
+          children: [
+            PageView.builder(
+              itemCount: widget.stories.length,
+              scrollDirection: Axis.horizontal,
+              allowImplicitScrolling: true,
+              pageSnapping: true,
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    StoryItem(
+                        id: index,
+                        storyController: widget.storyController,
+                        story: widget.stories[index],
+                        timeout: widget.timeout,
+                        timeoutWidget: widget.timeoutWidget,
+                        onReady: (id, duration) async {
+                          if (id == (widget.initialId) ||
+                              id == (widget.initialId + 1) ||
+                              id == (widget.initialId - 1)) {
+                            await Future.delayed(
+                                const Duration(milliseconds: 100));
+                            _storyListen.changeValue(
+                                id: id,
+                                status: StoryStatus.ready,
+                                duration: duration);
+                          } else {
+                            _storyListen.changeValue(
+                                id: id,
+                                status: StoryStatus.ready,
+                                duration: duration);
+                          }
+                        }),
+                    Positioned(
+                      top: 40.0,
+                      left: 10.0,
+                      right: 10.0,
+                      child: Column(
+                        children: <Widget>[
+                          Row(
+                            children: widget.stories
+                                .asMap()
+                                .map((i, e) {
+                                  return MapEntry(
+                                    i,
+                                    AnimatedBar(
+                                      animController: _animationController,
+                                      position: i,
+                                      currentIndex: index,
+                                    ),
+                                  );
+                                })
+                                .values
+                                .toList(),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                widget.exitButton!
-                    ? Positioned(
+                    ),
+                    if (widget.exitButton)
+                      Positioned(
                         right: 5,
                         top: 50,
                         child: InkWell(
@@ -298,34 +321,42 @@ class _StoryScreenState extends State<StoryScreen>
                             ),
                           ),
                         ),
-                      )
-                    : const SizedBox(),
-                widget.stories[widget.controller.currentPage.value]
-                        .actionButton ??
-                    const SizedBox(),
-                widget.stories[widget.controller.currentPage.value].child ??
-                    const SizedBox(),
-              ],
-            );
-          },
+                      ),
+                    widget.stories[index].actionButton ?? const SizedBox(),
+                    widget.stories[index].child ?? const SizedBox(),
+                  ],
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 100),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => widget.storyController.status
+                        ?.add(PlaybackState.previous),
+                    child: SizedBox(
+                      width: mediaWidth / 3,
+                      height: double.infinity,
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () =>
+                        widget.storyController.status?.add(PlaybackState.next),
+                    child: SizedBox(
+                      width: mediaWidth / 3,
+                      height: double.infinity,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  void _onComplete() {
-    if (widget.onComplete != null) {
-      widget.onComplete!();
-    }
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double dx = details.globalPosition.dx;
-    if (dx < screenWidth / 3) {
-      widget.controller.previous();
-    } else if (dx > 2 * screenWidth / 3) {
-      widget.controller.next(isRepeat: widget.isRepeat);
-    }
   }
 }

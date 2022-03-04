@@ -27,17 +27,16 @@ class AnimatedBar extends StatelessWidget {
                       ? Colors.white
                       : Colors.white.withOpacity(0.5),
                 ),
-                position == currentIndex
-                    ? AnimatedBuilder(
-                        animation: animController,
-                        builder: (context, child) {
-                          return _buildContainer(
-                            constraints.maxWidth * animController.value,
-                            Colors.white,
-                          );
-                        },
-                      )
-                    : const SizedBox.shrink(),
+                if (position == currentIndex)
+                  AnimatedBuilder(
+                    animation: animController,
+                    builder: (context, child) {
+                      return _buildContainer(
+                        constraints.maxWidth * animController.value,
+                        Colors.white,
+                      );
+                    },
+                  ),
               ],
             );
           },
@@ -52,10 +51,6 @@ class AnimatedBar extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: color,
-        // border: Border.all(
-        //   //  color: Colors.black26,
-        //   width: 1.8,
-        // ),
         borderRadius: BorderRadius.circular(3.0),
       ),
     );
