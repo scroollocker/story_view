@@ -231,19 +231,19 @@ class _StoryScreenState extends State<StoryScreen>
             widget.storyController.status?.add(PlaybackState.pause),
         onLongPressUp: () =>
             widget.storyController.status?.add(PlaybackState.play),
-        child: Stack(
-          children: [
-            PageView.builder(
-              itemCount: widget.stories.length,
-              scrollDirection: Axis.horizontal,
-              allowImplicitScrolling: true,
-              pageSnapping: true,
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
+        child: PageView.builder(
+          itemCount: widget.stories.length,
+          scrollDirection: Axis.horizontal,
+          allowImplicitScrolling: true,
+          pageSnapping: true,
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          itemBuilder: (context, index) {
+            return Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                Stack(
+                  children: [
                     StoryItem(
                         id: index,
                         storyController: widget.storyController,
@@ -267,94 +267,93 @@ class _StoryScreenState extends State<StoryScreen>
                                 duration: duration);
                           }
                         }),
-                    Positioned(
-                      top: 40.0,
-                      left: 10.0,
-                      right: 10.0,
-                      child: Column(
-                        children: <Widget>[
-                          Row(
-                            children: widget.stories
-                                .asMap()
-                                .map((i, e) {
-                                  return MapEntry(
-                                    i,
-                                    AnimatedBar(
-                                      animController: _animationController,
-                                      position: i,
-                                      currentIndex: index,
-                                    ),
-                                  );
-                                })
-                                .values
-                                .toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 100),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => widget.storyController.status
+                                ?.add(PlaybackState.previous),
+                            child: SizedBox(
+                              width: mediaWidth / 3,
+                              height: double.infinity,
+                            ),
+                          ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => widget.storyController.status
+                                ?.add(PlaybackState.next),
+                            child: SizedBox(
+                              width: mediaWidth / 3,
+                              height: double.infinity,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    if (widget.exitButton)
-                      Positioned(
-                        right: 5,
-                        top: 50,
-                        child: InkWell(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white24),
-                                child: const Material(
-                                  color: Colors.transparent,
-                                  child: Center(
-                                      child: Icon(Icons.close_rounded,
-                                          color: Colors.white)),
+                  ],
+                ),
+                Positioned(
+                  top: 40.0,
+                  left: 10.0,
+                  right: 10.0,
+                  child: Column(
+                    children: <Widget>[
+                      Row(
+                        children: widget.stories
+                            .asMap()
+                            .map((i, e) {
+                              return MapEntry(
+                                i,
+                                AnimatedBar(
+                                  animController: _animationController,
+                                  position: i,
+                                  currentIndex: index,
                                 ),
-                              ),
+                              );
+                            })
+                            .values
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.exitButton)
+                  Positioned(
+                    right: 5,
+                    top: 50,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: const BoxDecoration(
+                                shape: BoxShape.circle, color: Colors.white24),
+                            child: const Material(
+                              color: Colors.transparent,
+                              child: Center(
+                                  child: Icon(Icons.close_rounded,
+                                      color: Colors.white)),
                             ),
                           ),
                         ),
                       ),
-                    widget.stories[index].actionButton ?? const SizedBox(),
-                    widget.stories[index].child ?? const SizedBox(),
-                  ],
-                );
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 100),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => widget.storyController.status
-                        ?.add(PlaybackState.previous),
-                    child: SizedBox(
-                      width: mediaWidth / 3,
-                      height: double.infinity,
                     ),
                   ),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () =>
-                        widget.storyController.status?.add(PlaybackState.next),
-                    child: SizedBox(
-                      width: mediaWidth / 3,
-                      height: double.infinity,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                widget.stories[index].actionButton ?? const SizedBox(),
+                widget.stories[index].child ?? const SizedBox(),
+              ],
+            );
+          },
         ),
       ),
     );
