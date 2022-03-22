@@ -223,6 +223,11 @@ class _StoryScreenState extends State<StoryScreen>
     ]);
     return Scaffold(
       body: GestureDetector(
+        onPanUpdate: (details) {
+          if (details.delta.dy > 15) {
+            Navigator.of(context).pop();
+          }
+        },
         onTapDown: (details) =>
             widget.storyController.status?.add(PlaybackState.pause),
         onTapUp: (details) =>
