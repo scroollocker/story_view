@@ -226,7 +226,7 @@ class _StoryScreenState extends State<StoryScreen>
     return Scaffold(
       body: GestureDetector(
         onPanUpdate: (details) {
-          if (widget.isOpen) {
+          if (!widget.isOpen) {
             if (details.delta.dy > 15) {
               Navigator.of(context).pop();
             }
