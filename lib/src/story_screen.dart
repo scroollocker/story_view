@@ -20,6 +20,7 @@ class StoryScreen extends StatefulWidget {
   final int? timeout;
   final bool exitButton;
   final bool isRepeat;
+  final bool isOpen;
 
   const StoryScreen({
     Key? key,
@@ -34,6 +35,7 @@ class StoryScreen extends StatefulWidget {
     this.isRepeat = false,
     this.exitButton = true,
     this.onComplete,
+    this.isOpen = false,
   }) : super(key: key);
 
   @override
@@ -224,8 +226,10 @@ class _StoryScreenState extends State<StoryScreen>
     return Scaffold(
       body: GestureDetector(
         onPanUpdate: (details) {
-          if (details.delta.dy > 15) {
-            Navigator.of(context).pop();
+          if (widget.isOpen) {
+            if (details.delta.dy > 15) {
+              Navigator.of(context).pop();
+            }
           }
         },
         onTapDown: (details) =>

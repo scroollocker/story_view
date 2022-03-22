@@ -44,6 +44,7 @@ class _StoriesOpenState extends State<StoriesOpen> {
       color: Colors.black,
       child: StoryScreen(
         id: 0,
+        isOpen: true,
         storyController: controller,
         storiesController: storiesController,
         stories: widget.cell.stories,
