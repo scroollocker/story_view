@@ -11,6 +11,7 @@ class StoryActionButton extends StatelessWidget {
   final Color? color;
   final BorderRadius? borderRadius;
   final String? text;
+  final TextStyle? textStyle;
   const StoryActionButton({
     Key? key,
     this.onTap,
@@ -22,6 +23,7 @@ class StoryActionButton extends StatelessWidget {
     this.height,
     this.color,
     this.borderRadius,
+    this.textStyle,
     this.text,
   }) : super(key: key);
 
@@ -34,11 +36,15 @@ class StoryActionButton extends StatelessWidget {
       right: right,
       child: Center(
         child: GestureDetector(
-          onTap: () => onTap!.call(),
+          onTap: () => onTap?.call(),
           child: Container(
             width: width ?? 120,
             height: height ?? 40,
-            child: Center(child: Text(text ?? 'Подробнее')),
+            child: Center(
+                child: Text(
+              text ?? 'Подробнее',
+              style: textStyle,
+            )),
             decoration: BoxDecoration(
               color: color ?? Colors.white,
               borderRadius: borderRadius ??
