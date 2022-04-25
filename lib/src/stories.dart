@@ -100,19 +100,28 @@ class _StoriesState extends State<Stories> {
     _storiesController.init = true;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => StorySwipe(
-          cells: widget.cells,
-          exitButton: widget.exitButton,
-          initialPage: initialPage,
-          onPageComplete: onPageComplete,
-          storyControllers: _storyControllers,
-          timeout: widget.timeout,
-          pageController: _pageController,
-          storiesController: _storiesController,
-          timeoutWidget: widget.timeoutWidget ?? const SizedBox(),
-        ),
-      ),
+      PageRouteBuilder(
+          transitionDuration: Duration(milliseconds: 300),
+          reverseTransitionDuration: Duration(milliseconds: 300),
+          pageBuilder: (context, animation, secondaryAnimation) => StorySwipe(
+                cells: widget.cells,
+                exitButton: widget.exitButton,
+                initialPage: initialPage,
+                onPageComplete: onPageComplete,
+                storyControllers: _storyControllers,
+                timeout: widget.timeout,
+                pageController: _pageController,
+                storiesController: _storiesController,
+                timeoutWidget: widget.timeoutWidget ?? const SizedBox(),
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: animation.drive(Tween<Offset>(
+                      begin: const Offset(0, 1), end: const Offset(0, 0))
+                  .chain(CurveTween(curve: Curves.easeInOut))),
+              child: child,
+            );
+          }),
     );
   }
 
