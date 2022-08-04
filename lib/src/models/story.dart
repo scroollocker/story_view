@@ -6,42 +6,37 @@ enum MediaType {
 }
 
 class StoryCell {
-  String imagePath;
-  List<Story> stories;
+  final String iconUrl;
+  final List<Story> stories;
+  final bool watched;
 
   StoryCell({
-    required this.imagePath,
+    required this.iconUrl,
     required this.stories,
+    required this.watched,
   });
 }
 
 class Story {
-  final String path;
-  MediaType meadiaType;
-  Duration? duration;
-  Widget? actionButton;
-  Widget? child;
+  final String url;
+  final MediaType meadiaType;
+  final String? backType;
+  final String? backUrl;
+  final Color? gradientStart;
+  final Color? gradientEnd;
+  final Duration? duration;
+  final Widget? actionButton;
+  final Widget? child;
 
-  Story(
-    this.path, {
+  Story({
+    required this.url,
     this.child,
     this.meadiaType = MediaType.image,
     this.duration = const Duration(seconds: 5),
     this.actionButton,
+    this.gradientEnd,
+    this.gradientStart,
+    this.backType,
+    this.backUrl,
   });
-}
-
-enum StoryStatus { ready, loading, error }
-
-class StoryReady {
-  int? id;
-  StoryStatus status;
-  Duration? duration;
-  final Story story;
-
-  StoryReady(
-      {this.id,
-      this.status = StoryStatus.loading,
-      this.duration,
-      required this.story});
 }

@@ -14,6 +14,8 @@ class Stories extends StatefulWidget {
   final double? cellHeight;
   final double? cellWidht;
   final bool exitButton;
+  final Color? statusBarColor;
+  final Function(int id, int sroryId)? onWatched;
 
   const Stories({
     Key? key,
@@ -22,6 +24,8 @@ class Stories extends StatefulWidget {
     this.timeoutWidget,
     this.cellHeight,
     this.cellWidht,
+    this.statusBarColor,
+    this.onWatched,
     this.exitButton = true,
   }) : super(key: key);
 
@@ -76,10 +80,13 @@ class _StoriesState extends State<Stories> {
   void pageListener() {
     if (_pageController.page! % 1 == 0) {
       _currentPage = _pageController.page!.toInt();
+      _storiesController.setPage(_currentPage);
       if (_currentPage != 0) {
         _storyControllers[_currentPage - 1].status?.add(PlaybackState.reset);
       }
+      // print('PLAY ${_currentPage}');
       _storyControllers[_currentPage].status?.add(PlaybackState.play);
+      // _storyControllers[_currentPage].update?.call();
       if (_currentPage != _storyControllers.length - 1) {
         _storyControllers[_currentPage + 1].status?.add(PlaybackState.reset);
       }
@@ -97,6 +104,7 @@ class _StoriesState extends State<Stories> {
     _pageController = PageController(initialPage: _currentPage);
 
     _pageController.addListener(pageListener);
+    _storiesController.setPage(_currentPage);
     _storiesController.init = true;
     Navigator.push(
       context,
@@ -104,10 +112,12 @@ class _StoriesState extends State<Stories> {
           transitionDuration: const Duration(milliseconds: 300),
           reverseTransitionDuration: const Duration(milliseconds: 300),
           pageBuilder: (context, animation, secondaryAnimation) => StorySwipe(
+                statusBarColor: widget.statusBarColor,
                 cells: widget.cells,
                 exitButton: widget.exitButton,
                 initialPage: initialPage,
                 onPageComplete: onPageComplete,
+                onWatched: widget.onWatched,
                 storyControllers: _storyControllers,
                 timeout: widget.timeout,
                 pageController: _pageController,
@@ -143,34 +153,27 @@ class _StoriesState extends State<Stories> {
                   right: index == widget.cells.length - 1 ? 16 : 5),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: widget.cells[index].imagePath.contains('http')
-                    ? CachedNetworkImage(
-                        imageUrl: widget.cells[index].imagePath,
-                        errorWidget: (context, url, error) {
-                          return Container(
-                              width: double.infinity,
-                              height: double.infinity,
-                              color: Colors.black);
-                        },
-                        imageBuilder: (context, imageProvider) {
-                          return Container(
-                            width: widget.cellWidht ?? 70,
-                            height: widget.cellHeight ?? 70,
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: imageProvider,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : Image.asset(
-                        widget.cells[index].imagePath,
-                        height: widget.cellHeight ?? 70,
-                        width: widget.cellWidht ?? 70,
-                        fit: BoxFit.cover,
+                child: CachedNetworkImage(
+                  imageUrl: widget.cells[index].iconUrl,
+                  errorWidget: (context, url, error) {
+                    return Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        color: Colors.black);
+                  },
+                  imageBuilder: (context, imageProvider) {
+                    return Container(
+                      width: widget.cellWidht ?? 70,
+                      height: widget.cellHeight ?? 70,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                        ),
                       ),
+                    );
+                  },
+                ),
               ),
             ),
           );

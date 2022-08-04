@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stories/src/controller.dart';
 import 'package:stories/src/models/story.dart';
+import 'package:stories/src/models/story_process.dart';
+import 'package:stories/src/models/story_ready.dart';
 import 'package:stories/src/story_listen.dart';
 import 'package:stories/src/widgets/animated_bar.dart';
 import 'package:stories/src/widgets/story_item.dart';
@@ -14,13 +16,14 @@ class StoryScreen extends StatefulWidget {
   final StoryController storyController;
   final StoriesController storiesController;
   final int initialPage;
-  final int initialId;
+  final int initialStory;
   final VoidCallback? onComplete;
   final Widget? timeoutWidget;
   final int? timeout;
   final bool exitButton;
   final bool isRepeat;
   final bool isOpen;
+  final Function(int id)? onWatched;
 
   const StoryScreen({
     Key? key,
@@ -29,13 +32,14 @@ class StoryScreen extends StatefulWidget {
     required this.storyController,
     required this.storiesController,
     this.timeoutWidget,
-    this.initialId = 0,
+    this.initialStory = 0,
     this.initialPage = 0,
     this.timeout,
     this.isRepeat = false,
     this.exitButton = true,
     this.onComplete,
     this.isOpen = false,
+    this.onWatched,
   }) : super(key: key);
 
   @override
@@ -48,69 +52,47 @@ class _StoryScreenState extends State<StoryScreen>
   late AnimationController _animationController;
   late StoryListen _storyListen;
 
-  bool init = true;
-
   @override
   void initState() {
     super.initState();
 
-    widget.storyController.status = StreamController<PlaybackState>(
-      onListen: () => _reset(),
-    );
-
-    widget.storyController.status?.add(PlaybackState.pause);
-
     _storyListen = StoryListen(
         List.generate(widget.stories.length,
             (index) => StoryReady(story: widget.stories[index])),
-        widget.initialId);
+        widget.initialStory);
+
+    widget.storyController.status = StreamController<PlaybackState>();
 
     _storyListen.addListener(storyListener);
     widget.storyController.status?.stream.listen((event) {
       switch (event) {
         case PlaybackState.play:
-          {
-            _play();
-            break;
-          }
+          _play();
+          break;
         case PlaybackState.pause:
-          {
-            _pause();
-            break;
-          }
+          _pause();
+          break;
         case PlaybackState.next:
-          {
-            _nextPage();
-            break;
-          }
+          _nextPage();
+          break;
         case PlaybackState.previous:
-          {
-            _previousPage();
-            break;
-          }
+          _previousPage();
+          break;
         case PlaybackState.reset:
-          {
-            _reset();
-            break;
-          }
+          _reset();
+          break;
         case PlaybackState.repeat:
-          {
-            _repeat();
-            break;
-          }
+          _repeat();
+          break;
         case PlaybackState.wait:
-          {
-            break;
-          }
+          break;
         default:
-          {
-            _reset();
-            break;
-          }
+          _reset();
+          break;
       }
     });
 
-    _pageController = PageController(initialPage: widget.initialId);
+    _pageController = PageController(initialPage: widget.initialStory);
     _animationController =
         AnimationController(vsync: this, duration: const Duration(seconds: 5));
 
@@ -122,22 +104,29 @@ class _StoryScreenState extends State<StoryScreen>
   }
 
   void _play() {
-    try {
-      _animationController.forward();
-    } catch (_) {}
-    if (widget.stories[_storyListen.currentPage].meadiaType ==
-        MediaType.video) {
-      widget.storyController.play?.call();
+    // print('PLAY ${_storyListen.currentStory}');
+    if (_storyListen.currentStatus == StoryStatus.complete) {
+      try {
+        _animationController.forward();
+        if (_storyListen.mediaType == MediaType.video) {
+          widget.storyController.play?.call();
+        }
+      } catch (_) {
+        _animationController.reset();
+      }
     }
   }
 
   void _pause() {
-    try {
-      _animationController.stop();
-    } catch (_) {}
-    if (widget.stories[_storyListen.currentPage].meadiaType ==
-        MediaType.video) {
-      widget.storyController.pause?.call();
+    if (_storyListen.currentStatus == StoryStatus.complete) {
+      try {
+        _animationController.stop();
+        if (_storyListen.mediaType == MediaType.video) {
+          widget.storyController.pause?.call();
+        }
+      } catch (_) {
+        _animationController.reset();
+      }
     }
   }
 
@@ -145,72 +134,62 @@ class _StoryScreenState extends State<StoryScreen>
     try {
       _animationController.reset();
       _animationController.forward();
+      if (_storyListen.mediaType == MediaType.video) {
+        widget.storyController.repeat?.call();
+      }
     } catch (_) {}
-    if (widget.stories[_storyListen.currentPage].meadiaType ==
-        MediaType.video) {
-      widget.storyController.repeat?.call();
-    }
   }
 
   void _reset() {
     try {
       _animationController.reset();
+      if (_storyListen.mediaType == MediaType.video) {
+        widget.storyController.reset?.call();
+      }
     } catch (_) {}
-    if (widget.stories[_storyListen.currentPage].meadiaType ==
-        MediaType.video) {
-      widget.storyController.reset?.call();
-    }
   }
 
   void _nextPage() {
-    if (_storyListen.currentPage == widget.stories.length - 1) {
+    widget.onWatched?.call(_storyListen.currentStory);
+    print('---->>${_storyListen.currentStory}');
+    if (_storyListen.currentStory == widget.stories.length - 1) {
       if (widget.isRepeat) {
-        _storyListen.changePage(currentPage: 0);
+        _storyListen.changePage(id: 0);
         _pageController.jumpToPage(0);
       } else {
         widget.onComplete?.call();
       }
     } else {
       _storyListen.pageIncrement();
-      _pageController.jumpToPage(_storyListen.currentPage);
+      _pageController.jumpToPage(_storyListen.currentStory);
     }
   }
 
   void _previousPage() {
-    if (_storyListen.currentPage == 0) {
-      _storyListen.changePage(currentPage: 0);
+    if (_storyListen.currentStory == 0) {
+      _storyListen.changePage(id: 0);
       _pageController.jumpToPage(0);
     } else {
       _storyListen.pageDecrement();
-      _pageController.jumpToPage(_storyListen.currentPage);
+      _pageController.jumpToPage(_storyListen.currentStory);
     }
   }
 
   void storyListener() {
-    _animationController.duration = _storyListen.getCurrentDuration();
-    if (widget.storiesController.init == true) {
-      if (widget.initialPage == widget.storyController.id) {
-        widget.storyController.status?.add(PlaybackState.repeat);
-      } else {
-        widget.storyController.status?.add(PlaybackState.reset);
-      }
-      if (widget.initialPage + 1 == widget.stories.length) {
-        if (widget.initialPage + 1 == widget.storyController.id) {
-          widget.storiesController.init = false;
-        }
-      }
-
-      return;
+    print(
+        'LISTEN     ${widget.storyController.id}    ${_storyListen.currentStory}    ${_storyListen.currentStatus}');
+    if (widget.storiesController.id == widget.storyController.id &&
+        _storyListen.currentStatus == StoryStatus.complete) {
+      _animationController.duration = _storyListen.getCurrentDuration();
+      widget.storyController.status?.add(PlaybackState.repeat);
     }
-
-    widget.storyController.status?.add(PlaybackState.repeat);
   }
 
   @override
   void dispose() {
     widget.storyController.status?.close();
     _storyListen.removeListener(storyListener);
-    _storyListen.dispose();
+    _storyListen.dis();
     _animationController.dispose();
     _pageController.dispose();
     super.dispose();
@@ -249,33 +228,50 @@ class _StoryScreenState extends State<StoryScreen>
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) {
             return Stack(
-              alignment: Alignment.center,
+              alignment: Alignment.bottomCenter,
               children: <Widget>[
                 Stack(
                   children: [
                     StoryItem(
-                        id: index,
-                        storyController: widget.storyController,
-                        story: widget.stories[index],
-                        timeout: widget.timeout,
-                        timeoutWidget: widget.timeoutWidget,
-                        onReady: (id, duration) async {
-                          if (id == (widget.initialId) ||
-                              id == (widget.initialId + 1) ||
-                              id == (widget.initialId - 1)) {
-                            await Future.delayed(
-                                const Duration(milliseconds: 100));
-                            _storyListen.changeValue(
-                                id: id,
-                                status: StoryStatus.ready,
-                                duration: duration);
-                          } else {
-                            _storyListen.changeValue(
-                                id: id,
-                                status: StoryStatus.ready,
-                                duration: duration);
-                          }
-                        }),
+                      id: index,
+                      storyController: widget.storyController,
+                      story: widget.stories[index],
+                      timeout: widget.timeout,
+                      timeoutWidget: widget.timeoutWidget,
+                      onProcess: (process) {
+                        _storyListen.changeValue(
+                            id: process.id,
+                            status: process.status,
+                            duration: process.duration);
+                      },
+                      // onLoading: (id) {
+                      //   _storyListen.changeValue(
+                      //       id: id, status: StoryStatus.loading);
+                      //   // print('LOADING');
+                      // },
+                      // onReady: (id, duration) async {
+                      //   _storyListen.changeValue(
+                      //       id: id,
+                      //       status: StoryStatus.ready,
+                      //       duration: duration);
+                      // if (id == (widget.initialStory) ||
+                      //     id == (widget.initialStory + 1) ||
+                      //     id == (widget.initialStory - 1)) {
+                      //   await Future.delayed(
+                      //       const Duration(milliseconds: 100));
+                      //   _storyListen.changeValue(
+                      //       id: id,
+                      //       status: StoryStatus.ready,
+                      //       duration: duration);
+                      // } else {
+                      //   _storyListen.changeValue(
+                      //       id: id,
+                      //       status: StoryStatus.ready,
+                      //       duration: duration);
+                      // }
+                      // print('READY');
+                      // },
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(top: 100),
                       child: Row(
@@ -305,7 +301,7 @@ class _StoryScreenState extends State<StoryScreen>
                   ],
                 ),
                 Positioned(
-                  top: 40.0,
+                  top: 20.0 + MediaQuery.of(context).padding.top,
                   left: 10.0,
                   right: 10.0,
                   child: Column(
@@ -332,7 +328,7 @@ class _StoryScreenState extends State<StoryScreen>
                 if (widget.exitButton)
                   Positioned(
                     right: 5,
-                    top: 50,
+                    top: 50 + MediaQuery.of(context).padding.top,
                     child: InkWell(
                       onTap: () => Navigator.pop(context),
                       child: Container(

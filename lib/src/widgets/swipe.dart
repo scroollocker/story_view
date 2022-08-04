@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stories/src/controller.dart';
 import 'package:stories/src/helper/behavior_helper.dart';
 import 'package:stories/src/models/story.dart';
@@ -16,7 +17,9 @@ class StorySwipe extends StatefulWidget {
   final bool exitButton;
   final PageController pageController;
   final StoriesController storiesController;
+  final Function(int id, int storyId)? onWatched;
   final VoidCallback onPageComplete;
+  final Color? statusBarColor;
 
   const StorySwipe({
     Key? key,
@@ -29,6 +32,8 @@ class StorySwipe extends StatefulWidget {
     required this.timeoutWidget,
     required this.exitButton,
     required this.onPageComplete,
+    this.statusBarColor,
+    this.onWatched,
   }) : super(key: key);
 
   @override
@@ -36,7 +41,6 @@ class StorySwipe extends StatefulWidget {
 }
 
 class _StorySwipeState extends State<StorySwipe> {
-  double currentPageValue = 0.0;
   late PageController _pageController;
   List<StoryScreen> storyPages = [];
 
@@ -52,6 +56,7 @@ class _StorySwipeState extends State<StorySwipe> {
         id: i,
         storyController: widget.storyControllers[i],
         storiesController: widget.storiesController,
+        onWatched: (storyId) => widget.onWatched?.call(i, storyId),
         stories: widget.cells[i].stories,
         onComplete: widget.onPageComplete,
         initialPage: widget.initialPage,
@@ -60,22 +65,41 @@ class _StorySwipeState extends State<StorySwipe> {
         exitButton: widget.exitButton,
       ),
     );
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
   }
 
   void listener() {
     setState(() {
-      currentPageValue = _pageController.page!;
+      // currentPageValue = _pageController.page!;
     });
   }
 
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+        overlays: SystemUiOverlay.values);
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: widget.statusBarColor,
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
     _pageController.removeListener(listener);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    var statusBarHeight = MediaQuery.of(context).padding.top;
+    if (statusBarHeight < 30) {
+      statusBarHeight = 0;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
+    }
     return Material(
       color: Colors.black,
       child: ScrollConfiguration(
@@ -88,7 +112,7 @@ class _StorySwipeState extends State<StorySwipe> {
           allowImplicitScrolling: true,
           itemBuilder: (context, index) {
             double value;
-            widget.storyControllers[index].setId(index);
+            widget.storyControllers[index].setStory(index);
             if (_pageController.position.haveDimensions == false) {
               value = index.toDouble();
             } else {

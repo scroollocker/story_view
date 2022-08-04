@@ -36,6 +36,7 @@ class _StoriesOpenState extends State<StoriesOpen> {
     super.initState();
     controller = StoryController(0);
     storiesController = StoriesController();
+    storiesController.setPage(0);
   }
 
   @override

@@ -1,23 +1,32 @@
 import 'package:flutter/cupertino.dart';
-import 'package:stories/src/models/story.dart';
+import 'package:stories/src/models/story_process.dart';
+import 'package:stories/src/models/story_ready.dart';
+import 'package:stories/stories.dart';
 
 class StoryListen extends ChangeNotifier {
   List<StoryReady> _stories = [];
-  int _currentPage = 0;
+  int _currentStory = 0;
 
-  StoryListen(this._stories, this._currentPage);
+  bool mounted = true;
+
+  StoryListen(this._stories, this._currentStory);
 
   List<StoryReady> get stories => _stories;
-  int get currentPage => _currentPage;
+  int get currentStory => _currentStory;
+
+  StoryStatus get currentStatus => stories[currentStory].status;
+  MediaType get mediaType => _stories[currentStory].story.meadiaType;
 
   Duration getCurrentDuration() {
-    return stories[_currentPage].duration ?? const Duration(seconds: 5);
+    return stories[_currentStory].duration ?? const Duration(seconds: 5);
   }
 
   void pageIncrement() {
-    _currentPage++;
+    if (!mounted) return;
+    _currentStory++;
     for (var element in _stories) {
-      if (element.id == currentPage && element.status == StoryStatus.ready) {
+      if (element.id == currentStory && currentStatus == StoryStatus.complete) {
+        // print('COMPLETE LISTEN ${currentStatus}');
         notifyListeners();
         break;
       }
@@ -25,19 +34,21 @@ class StoryListen extends ChangeNotifier {
   }
 
   void pageDecrement() {
-    _currentPage--;
+    if (!mounted) return;
+    _currentStory--;
     for (var element in _stories) {
-      if (element.id == currentPage && element.status == StoryStatus.ready) {
+      if (element.id == currentStory && currentStatus == StoryStatus.complete) {
         notifyListeners();
         break;
       }
     }
   }
 
-  void changePage({required int currentPage}) {
-    _currentPage = currentPage;
+  void changePage({required int id}) {
+    if (!mounted) return;
+    _currentStory = id;
     for (var element in _stories) {
-      if (element.id == currentPage && element.status == StoryStatus.ready) {
+      if (element.id == currentStory && currentStatus == StoryStatus.complete) {
         notifyListeners();
         break;
       }
@@ -46,11 +57,19 @@ class StoryListen extends ChangeNotifier {
 
   void changeValue(
       {required StoryStatus status, required int id, Duration? duration}) {
-    _stories[id].id = id;
-    _stories[id].status = status;
-    _stories[id].duration = duration;
-    if (currentPage == id) {
-      notifyListeners();
+    if (!mounted) return;
+    if (_stories[id].status != status) {
+      _stories[id].id = id;
+      _stories[id].status = status;
+      _stories[id].duration = duration ?? _stories[id].duration;
+      if (currentStory == id) {
+        notifyListeners();
+      }
     }
+  }
+
+  void dis() {
+    mounted = false;
+    dispose();
   }
 }

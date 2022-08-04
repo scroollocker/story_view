@@ -51,7 +51,7 @@ class AnimatedBar extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(3.0),
+        borderRadius: BorderRadius.circular(8.0),
       ),
     );
   }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-enum LoadState { loading, success, failure }
+enum LoadState { loading, success, failure, downloading }
 
 enum PlaybackState {
   init,
@@ -18,15 +18,17 @@ enum PlaybackState {
 }
 
 class StoriesController extends ScrollController {
-  int? _initialPage;
+  int? _currentPage;
   bool? init;
-  get initPage => _initialPage;
+  int? get id => _currentPage;
   VoidCallback? play;
   VoidCallback? pause;
   VoidCallback? next;
   VoidCallback? previous;
   VoidCallback? close;
   VoidCallback? reset;
+
+  void setPage(int value) => _currentPage = value;
 }
 
 class StoryController {
@@ -42,7 +44,5 @@ class StoryController {
   VoidCallback? reset;
   StoryController(this._id);
 
-  void setId(int value) {
-    _id = value;
-  }
+  void setStory(int value) => _id = value;
 }
