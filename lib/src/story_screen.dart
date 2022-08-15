@@ -151,7 +151,6 @@ class _StoryScreenState extends State<StoryScreen>
 
   void _nextPage() {
     widget.onWatched?.call(_storyListen.currentStory);
-    print('---->>${_storyListen.currentStory}');
     if (_storyListen.currentStory == widget.stories.length - 1) {
       if (widget.isRepeat) {
         _storyListen.changePage(id: 0);
@@ -176,8 +175,6 @@ class _StoryScreenState extends State<StoryScreen>
   }
 
   void storyListener() {
-    print(
-        'LISTEN     ${widget.storyController.id}    ${_storyListen.currentStory}    ${_storyListen.currentStatus}');
     if (widget.storiesController.id == widget.storyController.id &&
         _storyListen.currentStatus == StoryStatus.complete) {
       _animationController.duration = _storyListen.getCurrentDuration();

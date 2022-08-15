@@ -100,7 +100,7 @@ class _VideoWidgetState extends State<VideoWidget> {
         _timeoutListen.cancel();
         break;
       case StoryStatus.complete:
-        _play();
+        _pause();
         widget.onProcess.call(StoryProcess(
             id: widget.id,
             status: StoryStatus.complete,
