@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stories/src/controller.dart';
 import 'package:stories/src/story_screen.dart';
 import 'package:stories/stories.dart';
@@ -11,10 +12,12 @@ class StoriesOpen extends StatefulWidget {
   final double? cellWidht;
   final bool exitButton;
   final bool isRepeat;
+  final Color statusBarColor;
 
   const StoriesOpen({
     Key? key,
     required this.cell,
+    required this.statusBarColor,
     this.timeout,
     this.timeoutWidget,
     this.cellHeight,
@@ -37,6 +40,24 @@ class _StoriesOpenState extends State<StoriesOpen> {
     controller = StoryController(0);
     storiesController = StoriesController();
     storiesController.setPage(0);
+
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarBrightness: Brightness.dark,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: widget.statusBarColor,
+      statusBarBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
+    super.dispose();
   }
 
   @override

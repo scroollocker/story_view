@@ -96,7 +96,7 @@ class _StorySwipeState extends State<StorySwipe> {
   @override
   Widget build(BuildContext context) {
     var statusBarHeight = MediaQuery.of(context).padding.top;
-    if (statusBarHeight < 30) {
+    if (statusBarHeight <= 24) {
       statusBarHeight = 0;
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
     }
